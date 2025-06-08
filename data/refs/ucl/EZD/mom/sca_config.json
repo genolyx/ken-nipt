@@ -1,0 +1,125 @@
+{
+    "config_info": {
+        "name": "Maternal Reference SCA Detection",
+        "type": "mom",
+        "description": "Maternal population reference data for SCA detection (Female only)",
+        "version": "1.0",
+        "created_date": "2025-05-31",
+        "last_updated": "2025-05-31",
+        "note": "Mom reference is only for female SCA detection (XO/XXX). No male detection needed."
+    },
+    "sca_detection": {
+        "male": {
+            "enabled": false,
+            "reason": "Mom reference does not require male SCA detection (XXY/XYY)",
+            "description": "Male SCA detection not applicable for maternal reference"
+        },
+        "female": {
+            "xo_threshold": -5.5,
+            "xxx_threshold": 5.0,
+            "ur_x_min": 5.4,
+            "ur_x_max": 5.6,
+            "z_normal_min": -2.5,
+            "z_normal_max": 1.5,
+            "xo_ur_x_min": 5.0,
+            "xo_ur_x_max": 5.3,
+            "xxx_ur_x_min": 5.7,
+            "xxx_ur_x_max": 6.5,
+            "xo_suspected_threshold": -3.5,
+            "xxx_suspected_threshold": 1.5,
+            "description": "Maternal female reference data for XO/XXX detection",
+            "sample_count": 800,
+            "detection_types": ["XO", "XXX", "Normal"],
+            "special_rules": {
+                "xo_mosaicism_threshold": -8.0,
+                "xxx_mosaicism_threshold": 6.0,
+                "mosaicism_ur_x_limits": {
+                    "xo_max": 4.9,
+                    "xxx_min": 6.0
+                }
+            }
+        }
+    },
+    "detection_rules": {
+        "male": {
+            "enabled": false,
+            "message": "Male SCA detection not required for maternal reference"
+        },
+        "female": {
+            "logic": "maternal_z_score_and_ur_x_ranges",
+            "steps": [
+                "1. If z_score < xo_threshold and ur_x in [xo_ur_x_min, xo_ur_x_max]: XO Detected",
+                "2. If z_score < xo_mosaicism_threshold and ur_x < xo_max: XO Mom Mosaicism",
+                "3. If z_score < xo_suspected_threshold and ur_x in XO range: XO Suspected",
+                "4. If z_score > xxx_threshold and ur_x in [xxx_ur_x_min, xxx_ur_x_max]: XXX Detected",
+                "5. If z_score > xxx_mosaicism_threshold and ur_x > xxx_min: XXX Mom Mosaicism",
+                "6. If z_score > xxx_suspected_threshold and ur_x in XXX range: XXX Suspected",
+                "7. If z_score in [z_normal_min, z_normal_max] and ur_x in [ur_x_min, ur_x_max]: Normal",
+                "8. Else: Not Detected"
+            ],
+            "priority": [
+                "Mosaicism detection has higher priority than regular detection",
+                "Suspected cases are intermediate between normal and detected"
+            ]
+        }
+    },
+    "plot_settings": {
+        "figure_size": [12, 8],
+        "dpi": 100,
+        "colors": {
+            "xx_normal": "gray",
+            "xo": "coral",
+            "xo_suspected": "lightsalmon",
+            "xxx": "gold",
+            "xxx_suspected": "khaki",
+            "mosaicism": "darkred",
+            "threshold_line": "red",
+            "test_sample": "red",
+            "normal_zone": "lightblue"
+        },
+        "male": {
+            "enabled": false,
+            "message": "Male plotting not applicable for maternal reference"
+        },
+        "female": {
+            "x_axis_range": [4.0, 7.0],
+            "y_axis_range": [-40, 40],
+            "title": "SCA (Female) - Maternal Reference",
+            "threshold_lines": {
+                "xo_threshold": -5.5,
+                "xxx_threshold": 5.0,
+                "ur_x_min": 5.4,
+                "ur_x_max": 5.6
+            }
+        }
+    },
+    "maternal_specific": {
+        "considerations": [
+            "Maternal age effects on SCA detection",
+            "Higher tolerance for mosaicism patterns",
+            "Different threshold values due to maternal biology"
+        ],
+        "age_groups": {
+            "young_mother": {
+                "age_range": [20, 30],
+                "z_adjustment": 0.0,
+                "description": "Standard thresholds for young mothers"
+            },
+            "middle_age_mother": {
+                "age_range": [30, 40],
+                "z_adjustment": 0.2,
+                "description": "Slightly adjusted thresholds for middle-age mothers"
+            },
+            "elderly_mother": {
+                "age_range": [40, 50],
+                "z_adjustment": 0.5,
+                "description": "More conservative thresholds for elderly mothers"
+            }
+        }
+    },
+    "file_paths": {
+        "female_reference": "/path/to/mom/female.txt",
+        "output_directory": "/path/to/output/mom/",
+        "male_reference": null
+    }
+}
