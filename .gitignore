@@ -1,16 +1,16 @@
-analysis/
-bkup/
-data/refs/common/hg19
-fastq/
-log/
-output/
-.nextflow/
-nextflow/
-ucl/
+/analysis/
+/bkup/
+/data/refs/common/hg19
+/fastq/
+/log/
+/output/
+/.nextflow/
+/nextflow/
+/ucl/
 
-src/logs/
-src/rsc_log/
-src/test/
+/src/logs/
+/src/rsc_log/
+/src/test/
 
 *.swp
 *.fasta
