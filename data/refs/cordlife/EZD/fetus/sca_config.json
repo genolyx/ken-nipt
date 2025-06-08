@@ -1,0 +1,88 @@
+{
+    "config_info": {
+        "name": "Fetal Reference SCA Detection",
+        "type": "fetus",
+        "description": "Fetal population reference data for SCA detection",
+        "version": "1.0",
+        "created_date": "2025-05-31",
+        "last_updated": "2025-05-31"
+    },
+    "sca_detection": {
+        "male": {
+            "slope": -0.09061059750410849,
+            "intercept": 0.5229228546732532,
+            "ur_x_threshold": 5.2,
+            "margin": 0.005,
+            "description": "Fetal male reference data for XYY/XXY detection",
+            "sample_count": 850,
+            "detection_types": ["XYY", "XXY", "Normal"]
+        },
+        "female": {
+            "xo_threshold": -6.5,
+            "xxx_threshold": 4.0,
+            "ur_x_min": 5.3,
+            "ur_x_max": 5.5,
+            "z_normal_min": -3.2,
+            "z_normal_max": 1.2,
+            "xo_ur_x_min": 4.8,
+            "xo_ur_x_max": 5.3,
+            "xxx_ur_x_min": 5.5,
+            "xxx_ur_x_max": 6.2,
+            "description": "Fetal female reference data for XO/XXX detection",
+            "sample_count": 950,
+            "detection_types": ["XO", "XXX", "Normal"]
+        }
+    },
+    "detection_rules": {
+        "male": {
+            "logic": "boundary_line_with_threshold",
+            "steps": [
+                "1. Calculate boundary_y = slope * ur_x + intercept",
+                "2. If ur_y > boundary_y + margin: Abnormal",
+                "3. If abnormal and ur_x >= ur_x_threshold: XYY Detected",
+                "4. If abnormal and ur_x < ur_x_threshold: XXY Detected",
+                "5. If ur_y > boundary_y (no margin): Suspected",
+                "6. Else: Normal"
+            ]
+        },
+        "female": {
+            "logic": "z_score_and_ur_x_ranges",
+            "steps": [
+                "1. If z_score < xo_threshold and ur_x in [xo_ur_x_min, xo_ur_x_max]: XO Detected",
+                "2. If z_score > xxx_threshold and ur_x in [xxx_ur_x_min, xxx_ur_x_max]: XXX Detected",
+                "3. If z_score in [z_normal_min, z_normal_max] and ur_x in [ur_x_min, ur_x_max]: Normal",
+                "4. Else: Not Detected"
+            ]
+        }
+    },
+    "plot_settings": {
+        "figure_size": [12, 8],
+        "dpi": 100,
+        "colors": {
+            "xy_normal": "blue",
+            "xxy": "orange",
+            "xyy": "green",
+            "xx_normal": "gray",
+            "xo": "coral",
+            "xxx": "gold",
+            "boundary_line": "purple",
+            "threshold_line": "red",
+            "test_sample": "red"
+        },
+        "male": {
+            "x_axis_range": [4.0, 6.0],
+            "y_axis_range": [0.0, 0.15],
+            "title": "SCA (Male) - Fetal Reference"
+        },
+        "female": {
+            "x_axis_range": [4.0, 7.0],
+            "y_axis_range": [-40, 40],
+            "title": "SCA (Female) - Fetal Reference"
+        }
+    },
+    "file_paths": {
+        "male_reference": "/path/to/fetus/male.txt",
+        "female_reference": "/path/to/fetus/female.txt",
+        "output_directory": "/path/to/output/fetus/"
+    }
+}

@@ -1,0 +1,87 @@
+1	1	121000000	Partial monosomy 1p	loss	overlap	-	-	-	-
+1	142600001	155000000	Monosomy 1q21-q32	loss	overlap	-	-	-	-
+1	224100001	249250621	Monosomy 1q42-qter	loss	overlap	-	-	-	-
+1	156500001	249250621	Trisomy 1q23-qter	gain	overlap	-	-	-	-
+2	1	90914128	Partial monosomy 2p	loss	overlap	-	-	-	-
+2	1	90914128	Partial trisomy 2p	gain	overlap	-	-	-	-
+2	97116529	243199372	Partial monosomy 2q	loss	overlap	-	-	-	-
+2	97116529	243199372	Partial trisomy 2q	gain	overlap	-	-	-	-
+3	43700001	91000000	Monosomy 3p11-p21	loss	overlap	-	-	-	-
+3	132902	16081016	Monosomy 3p25-pter	loss	overlap	-	-	-	-
+3	1	87863383	Partial trisomy 3p	gain	overlap	-	-	-	-
+3	93536245	198022429	Partial monosomy 3q	loss	overlap	-	-	-	-
+3	93536245	198022429	Partial trisomy 3q	gain	overlap	-	-	-	-
+3	1	198022429	Partial monosomy 3p 	loss	overlap	-	-	-	-
+4	1	48494172	Partial monosomy 4p	loss	overlap	-	-	-	-
+4	1	48494172	Partial trisomy 4p	gain	overlap	-	-	-	-
+4	76300001	155600000	Monosomy 4q21-q31	loss	overlap	-	-	-	-
+4	139500001	191154275	Monosomy 4q31-qter	loss	overlap	-	-	-	-
+4	52086334	191154275	Partial trisomy 4q	gain	overlap	-	-	-	-
+4	1	191154275	Partial monosomy 4p	loss	overlap	-	-	-	-
+5	1	47821161	Partial trisomy 5p	gain	overlap	-	-	-	-
+5	50017031	180793266	Partial monosomy 5q	loss	overlap	-	-	-	-
+5	50017031	180793266	Partial trisomy 5q	gain	overlap	-	-	-	-
+6	1	59736372	Partial trisomy 6p	gain	overlap	-	-	-	-
+6	62586391	171001065	Partial monosomy 6q	loss	overlap	-	-	-	-
+6	1	59736372	Partial trisomy 6q	gain	overlap	-	-	-	-
+7	1	59383286	Partial monosomy 7p	loss	overlap	-	-	-	-
+7	1	59383286	Partial trisomy 7p	gain	overlap	-	-	-	-
+7	127204126	159138662	monosomy 7q32-qter	loss	overlap	-	-	-	-
+7	77412982	127116858	Trisomy 7q21-q31	gain	overlap	-	-	-	-
+7	127204126	159138662	Trisomy 7q32-qter	gain	overlap	-	-	-	-
+8	48034905	146364021	Partial trisomy 8q	gain	overlap	-	-	-	-
+9	1	47766154	Partial monosomy 9p	loss	overlap	-	-	-	-
+9	1	47766154	Partial trisomy 9p	gain	overlap	-	-	-	-
+9	50609378	141213430	Partial monosomy 9q	loss	overlap	-	-	-	-
+9	50609378	141213430	Partial trisomy 9q	gain	overlap	-	-	-	-
+10	1	38110579	Partial monosomy 10p	loss	overlap	-	-	-	-
+10	1	38110579	Partial trisomy 10p	gain	overlap	-	-	-	-
+10	42300000	135534747	Partial monosomy 10q	loss	overlap	-	-	-	-
+10	42300000	135534747	Partial trisomy 10q	gain	overlap	-	-	-	-
+11	1	51869973	Partial trisomy 11p	gain	overlap	-	-	-	-
+11	55755704	135006515	Partial monosomy 11q	loss	overlap	-	-	-	-
+11	55755704	135006515	Partial trisomy 11q	gain	overlap	-	-	-	-
+12	1	33713547	Partial monosomy 12p	loss	overlap	-	-	-	-
+12	1	33713547	Partial trisomy 12p	gain	overlap	-	-	-	-
+12	38200000	133851895	Partial trisomy 12q	gain	overlap	-	-	-	-
+13	40100001	55300000	Monosomy 13q14	loss	overlap	-	-	-	-
+13	55300001	115169878	Monosomy 13q21-qter	loss	overlap	-	-	-	-
+13	40100001	55300000	Trisomy 13cen-q14	gain	overlap	-	-	-	-
+13	55300001	115169878	Trisomy 13q21-qter	gain	overlap	-	-	-	-
+14	1	107349540	Partial trisomy 14	gain	overlap	-	-	-	-
+14	67900001	107349540	Trisomy 14q24-qter	gain	overlap	-	-	-	-
+15	1	102531392	Supernumerary inv dup (15)	gain	overlap	-	-	-	-
+15	59100001	102531392	Trisomy 15q22-qter	gain	overlap	-	-	-	-
+16	1	34728394	Partial trisomy 16p	gain	overlap	-	-	-	-
+16	38600001	90354753	Partial monosomy 16q	loss	overlap	-	-	-	-
+16	38600001	90354753	Partial trisomy 16q	gain	overlap	-	-	-	-
+17	1	50200000	Trisomy 17pter-q21	gain	overlap	-	-	-	-
+18	1	15751966	Partial monosomy 18p	loss	overlap	-	-	-	-
+18	1	15751966	Partial tetrasomy 18p	gain	overlap	-	-	-	-
+18	1	43500000	Trisomy 18pter-q12	gain	overlap	-	-	-	-
+18	43500001	78077248	Monosomy 18q21-qter	loss	overlap	-	-	-	-
+18	25000001	78077248	Trisomy 18q12-qter	gain	overlap	-	-	-	-
+20	1	26108756	Partial monosomy 20p	loss	overlap	-	-	-	-
+20	1	26108756	Trisomy 20p	gain	overlap	-	-	-	-
+21	1	48129895	Partial monosomy 21	loss	overlap	-	-	-	-
+1	1	28000000	1p36 deletion syndrome	loss	overlap	3000000	-	-	-
+2	59285696	61819815	2p16.1-p15 deletion syndrome	loss	overlap	2500000	-	-	-
+2	196925121	205206939	2q33.1 deletion syndrome	loss	overlap	3000000	-	-	-
+2	231000001	243199373	2q37 deletion syndrome	loss	overlap	3000000	-	-	-
+3	1	16424996	3p deletion syndrome	loss	overlap	3000000	-	-	-
+4	1	4500000	4p16.31 deletion syndrome	loss	overlap	3000000	-	-	-
+5	1	12533304	Cri-du-chat syndrome	loss	overlap	3000000	-	-	-
+7	72200001	77500000	7q11.2 deletion syndrome	loss	overlap	3000000	-	-	-
+8	112100001	119200000	Langer-Giedion syndrome	loss	overlap	3000000	-	-	-
+8	8100055	11764629	8p23.1 deletion syndrome	loss	overlap	3000000	-	-	-
+8	8100055	11764629	8p23.1 duplication syndrome	gain	overlap	3000000	-	-	-
+11	114500001	135006516	11q23.3-q25 deletion syndrome	loss	overlap	3000000	-	-	-
+15	22832519	28379874	Angelman syndrome	loss	overlap	3000000	-	-	-
+15	22832519	28379874	Prader-Willi syndrome	loss	overlap	3000000	-	-	-
+15	89100001	102531392	15q26 duplication syndrome	gain	overlap	3000000	-	-	-
+16	21512062	30199854	16p11.2-p12.2 microdeletion syndrome	loss	overlap	3000000	-	-	-
+16	21512062	30199854	16p11.2-p12.2 microduplication syndrome	gain	overlap	3000000	-	-	-
+17	1	3300000	17p13.3 deletion syndrome (Miller Deker)	loss	overlap	3000000	-	-	-
+17	16773072	20222149	Smith-Magenis syndrome	loss	overlap	3000000	-	-	-
+17	16773072	20222149	Potocki-Lupski syndrome	gain	overlap	3000000	-	-	-
+22	18912231	23649111	22q11.2 deletion syndrome	loss	overlap	3000000	-	-	-
