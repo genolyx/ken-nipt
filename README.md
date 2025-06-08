@@ -1,5 +1,11 @@
-# ken-nipt
+# Ken NIPT
 
-src
-docker
-bin
+NIPT Analysis System
+
+
+## Directory Structure
+```
+src/
+docker/
+bin/
+```
