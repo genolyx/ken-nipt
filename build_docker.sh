@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 기본값
-IMAGE_NAME="nipt_docker"
+IMAGE_NAME="nipt_docker_v1.0"
 TAG="latest"
 DOCKERFILE_PATH="./docker/Dockerfile"
 

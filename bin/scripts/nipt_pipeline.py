@@ -32,6 +32,7 @@ import shutil
 import glob
 import hashlib
 import pysam
+import inspect
 from pathlib import Path
 
 sys.path.append('/Work/NIPT/bin')
@@ -1645,24 +1646,19 @@ def calculate_yff2(wig_norm_file, ff_config, paths):
 
         unique_Y_specific = unique_Y[unique_Y["start"].isin(specific_positions)]
 
-        logger.info(len(unique_Y))
-        logger.info(unique_Y["cor.gc"].sum())
         # 3. gd_2 값 계산: sum(unique.Y.specific[,4])/sum(unique.Y[,4]) * 100
         if len(unique_Y) == 0 or unique_Y["cor.gc"].sum() == 0:
-            log_and_print(f"gd_2 FAIL")
             gd_2_value = 0.0
         else:
             sum_unique_Y_specific = unique_Y_specific["cor.gc"].sum()
             sum_unique_Y = unique_Y["cor.gc"].sum()
             gd_2_value = (sum_unique_Y_specific / sum_unique_Y) * 100
-            logger.info(gd_2_value)
 
         # gd_2 gender detection
         gd_2_threshold = ff_config.get('gd_2_threshold', 0.4)
         gd_2_gender = "XY" if gd_2_value > gd_2_threshold else "XX"
 
         logger.info(f"gd_2: {gd_2_value:.6f} → {gd_2_gender} (threshold: {gd_2_threshold})")
-        logger.info(f"  unique_Y windows: {len(unique_Y)}, unique_Y_specific matched: {len(unique_Y_specific)}")
 
         # ================================
         # YFF2 Calculation
@@ -1676,7 +1672,6 @@ def calculate_yff2(wig_norm_file, ff_config, paths):
             chr_df = df[df["chr"] == f"chr{i}"]
             autosome_sum += chr_df["cor.gc"].sum()
 
-        logger.info(f"autosome_sum : {autosome_sum}")
         if autosome_sum <= 0:
             return {
                 "YFF2": 0,
@@ -2009,7 +2004,7 @@ def extract_seqff_value(seqff_txt_path):
     try:
         with open(seqff_txt_path, 'r') as f:
             for line in f:
-                if line.startswith('"SeqFF"'):
+                if line.startswith('"M-SeqFF"'):
                     parts = line.strip().split(',')
                     return float(parts[1])
     except Exception as e:
@@ -2038,7 +2033,6 @@ def calculate_seqff(sample_name, bam_path):
 
     # Immediately parse "SeqFF" result from file
     try:
-        import pandas as pd
         df = pd.read_csv(seqff_txt, index_col=0)
         seqff_value = float(df.loc["SeqFF", "x"]) * 100
         return {"seqff_value": round(seqff_value, 2), "seqff_file": seqff_txt}
@@ -2110,6 +2104,11 @@ def calculate_fetal_fraction(sample_name, config, paths):
     seqff_result = calculate_seqff(sample_name, bam_path)
     ff_results["SeqFF"] = {
         'value' : seqff_result["seqff_value"]
+    }
+    
+    # 250610 : Add the modified seqFF
+    ff_results["M-SeqFF"] = {
+        'value' : seqff_result["seqff_value"] + 4.0
     }
 
     df_ff = pd.DataFrame.from_dict(ff_results, orient='index')
@@ -2561,6 +2560,25 @@ def setup_logging(sample_name):
     return logger
 
 def log_and_print(message, level='INFO'):
+    """기존 datetime import와 일관된 로그 함수"""
+    # 호출자 정보
+    frame = inspect.currentframe().f_back
+    filename = os.path.basename(frame.f_code.co_filename)
+    lineno = frame.f_lineno
+    funcname = frame.f_code.co_name
+    
+    # 기존 코드와 동일한 방식으로 datetime 사용
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    caller_info = f"[{funcname}]:{lineno}"
+    
+    # 최종 로그 메시지
+    final_message = f"[{timestamp}] [{level}] {caller_info} {message}"
+    
+    # 콘솔 출력
+    print(final_message, flush=True)
+
+
+def log_and_print_simple(message, level='INFO'):
     """로그 파일과 콘솔에 동시 출력"""
     print(f"[{level}] {message}", flush=True)  # flush=True로 즉시 출력
     logger = logging.getLogger(__name__)
@@ -3190,12 +3208,6 @@ def main():
         "wig_map_10mb": ref_common_dir / "hmmcopy" / "hg19.map.10mb.wig",
         "bed_dir": bed_dir
     }
-
-    #for bam_type in ["orig", "fetus", "mom"]:
-    #    paths[f"ref_wc_{bam_type}"] = ref_lab_dir / "WC" / f"{bam_type}_{config['WC']['ref']}.npz"
-        # After gender confirmation, allocate belows
-        #paths[f"ref_wcx_{bam_type}"] = ref_lab_dir / "WCX" / f"{bam_type}_{gender.upper()}_{config['WCX']['ref']}.npz"
-        #paths[f"ref_lomaz_{bam_type}"] = ref_lab_dir / "LoMAz" / bam_type
 
     # Add MD targets if defined
     paths["md_beds"] = {}

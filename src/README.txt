@@ -137,6 +137,8 @@
 
     : run commercial pipeline (using run_nipt.sh)
 
+    : bash run_nipt.sh -s 2506030014 -1 2506030014_S1_R1_001.fastq.gz -2 2506030014_S1_R2_001.fastq.gz -l cordlife -a 30 -root /home/ken/ken-nipt -work 250605_01
+
 # ---------------------------------------#
 # Directories
 # ---------------------------------------#

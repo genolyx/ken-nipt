@@ -146,7 +146,7 @@ def read_fetal_fraction_data(ff_path, gender_path):
 
                 if ff_type == 'YFF_2':
                     yff = ff_value
-                elif ff_type == 'SeqFF':
+                elif ff_type == 'M-SeqFF':
                     seqff = ff_value
             
         except Exception as e:
@@ -301,6 +301,7 @@ def build_final_results_table(analysis_dir, sample_name):
     sample_bias = read_sample_bias_qc(sample_bias_file)
     
     # 4. Read trisomy details chromosomes to determine final result (simplified)
+    '''
     final_trisomy_results = []
     try:
         # Just check if any detection files indicate positive results
@@ -323,7 +324,7 @@ def build_final_results_table(analysis_dir, sample_name):
     except Exception as e:
         logger.error(f"Error determining final trisomy result: {e}")
         final_trisomy_results = ["Low Risk"]
-    
+
     # 5. Read MD detection results
     md_results = []
     
@@ -343,18 +344,20 @@ def build_final_results_table(analysis_dir, sample_name):
         md_results.extend(md_type_results)
    
     logger.info(f"md_results : {md_results}")
+    '''
 
     return {
         'original': orig_results,
         'fetus': fetus_results,
         'mom': mom_results,
         'fetal_gender': ff_gender_data['gender'],
-        'fetal_fraction_yff': ff_gender_data['yff'],
+        # 250610 : fetal_fraction_yff is set to "N/A" for gender Female
+        'fetal_fraction_yff': "N/A" if ff_gender_data['gender'] == "Female" else ff_gender_data['yff'],
         'fetal_fraction_seqff': ff_gender_data['seqff'],
         'ff_ratio': ff_gender_data['ff_ratio'],
-        'sample_bias_qc': sample_bias,
-        'final_trisomy_result': final_trisomy_results,
-        'md_results': md_results if md_results else ["Low Risk"]
+        'sample_bias_qc': sample_bias
+        #'final_trisomy_result': final_trisomy_results,
+        #'md_results': md_results if md_results else ["Low Risk"]
     }
 
 # ==============================================================
@@ -638,148 +641,6 @@ def build_trisomy_results(analysis_dir, sample_name, age, common_data_dir):
     #logger.info(results)
     return results
 
-def build_trisomy_results_old(analysis_dir, sample_name, age, common_data_dir):
-    """Build trisomy results from EZD detection result files"""
-    
-    trisomy_order = ["Trisomy21", "Trisomy18", "Trisomy13", "Trisomy9", 
-                     "Trisomy16", "Trisomy22", "XO", "XXX", "XXY", "XYY", "other"]
-    
-    item_mapping = {
-        "Trisomy21": "T21", "Trisomy18": "T18", "Trisomy13": "T13", 
-        "Trisomy9": "T9", "Trisomy16": "T16", "Trisomy22": "T22",
-        "XO": "XO", "XXX": "XXX", "XXY": "XXY", "XYY": "XYY", "other": "other"
-    }
-    
-    # Chromosome to trisomy mapping
-    chr_to_trisomy = {
-        "chr21": "Trisomy21", "chr18": "Trisomy18", "chr13": "Trisomy13",
-        "chr9": "Trisomy9", "chr16": "Trisomy16", "chr22": "Trisomy22",
-        "chrX": ["XO", "XXX"], "chrY": ["XXY", "XYY"]  # chrX and chrY can have multiple conditions
-    }
-    
-    results = []
-    
-    # Read risk_before data based on age
-    risk_before_data = read_risk_before_data(age, common_data_dir)
-    
-    # Read both original and fetus results for comparison
-    orig_file = f"{analysis_dir}/{sample_name}/Output_EZD/orig/Trisomy_detect_result_orig_with_SCA.tsv"
-    fetus_file = f"{analysis_dir}/{sample_name}/Output_EZD/fetus/Trisomy_detect_result_fetus_with_SCA.tsv"
-    
-    orig_df = safe_read_csv(orig_file, sep="\t")
-    fetus_df = safe_read_csv(fetus_file, sep="\t")
-    
-    if orig_df is None:
-        logger.warning(f"Could not read original trisomy results from {orig_file}")
-        orig_df = pd.DataFrame(columns=['chr', 'result', 'Z', 'UAR'])
-
-    if fetus_df is None:
-        logger.warning(f"Could not read fetus trisomy results from {fetus_file}")
-        fetus_df = pd.DataFrame(columns=['chr', 'result', 'Z', 'UAR'])
-    
-    # Process each trisomy in order
-    required_columns = ['chr', 'result', 'Z', 'UAR']
-    if not all(col in orig_df.columns for col in required_columns):
-        logger.error(f"Missing required columns in {orig_file}. Available: {list(orig_df.columns)}")
-        orig_df = pd.DataFrame(columns=required_columns)
-
-    if not all(col in fetus_df.columns for col in required_columns):
-        logger.error(f"Missing required columns in {fetus_file}. Available: {list(fetus_df.columns)}")
-        fetus_df = pd.DataFrame(columns=required_columns)
-
-    for trisomy in trisomy_order:
-        # Find corresponding chromosome(s)
-        target_chrs = []
-        for chr_name, trisomy_list in chr_to_trisomy.items():
-            if isinstance(trisomy_list, list):
-                if trisomy in trisomy_list:
-                    target_chrs.append(chr_name)
-            else:
-                if trisomy == trisomy_list:
-                    target_chrs.append(chr_name)
-        
-        # If no chromosome mapping found, skip
-        if not target_chrs:
-            continue
-            
-        # Get results from both dataframes
-        orig_detected = False
-        fetus_detected = False
-        
-        for chr_name in target_chrs:
-            # Check original results
-            if chr_name in orig_df['chr'].values:
-                orig_row = orig_df[orig_df['chr'] == chr_name].iloc[0]
-                
-                # Check for specific SCA conditions in result column
-                if chr_name in ["chrX", "chrY"]:
-                    if trisomy in orig_row['result']:
-                        orig_detected = True
-                else:
-                    # For autosomal trisomies, check if detected
-                    if orig_row['result'] != "Not Detected":
-                        orig_detected = True
-            
-            # Check fetus results
-            if chr_name in fetus_df['chr'].values:
-                fetus_row = fetus_df[fetus_df['chr'] == chr_name].iloc[0]
-                
-                # Check for specific SCA conditions in result column
-                if chr_name in ["chrX", "chrY"]:
-                    if trisomy in fetus_row['result']:
-                        fetus_detected = True
-                else:
-                    # For autosomal trisomies, check if detected
-                    if fetus_row['result'] != "Not Detected":
-                        fetus_detected = True
-        
-        # Determine final result based on both orig and fetus results
-        if orig_detected and fetus_detected:
-            result_status = "High Risk"
-        elif orig_detected or fetus_detected:
-            result_status = "High Risk" # Suspected
-        else:
-            result_status = "Low Risk"
-        
-        # Determine risk_after based on detection result (single value, not list)
-        if result_status == "High Risk":
-            risk_after = "90/100"
-        else:
-            risk_after = "<2/10,000"
-        
-        # Get risk_before from CSV data (both single and twin)
-        trisomy_item = item_mapping[trisomy]
-        risk_before_single = None
-        risk_before_twin = None
-        
-        if trisomy_item in risk_before_data:
-            risk_before_single = risk_before_data[trisomy_item]['single']
-            risk_before_twin = risk_before_data[trisomy_item]['twin']
-        
-        # Set PPV/NPV for specific trisomies only
-        ppv_npv_trisomies = ["Trisomy13", "Trisomy18", "Trisomy21", "XXX", "XO", "XYY", "XXY"]
-        if trisomy in ppv_npv_trisomies:
-            ppv = ">99"
-            npv = ">99"
-        else:
-            ppv = None
-            npv = None
-        
-        # Create result entry (removed z_score and uar_percent)
-        result = {
-            "item": item_mapping[trisomy],
-            "disease_name": trisomy,
-            "result": result_status,
-            "risk_before_single": risk_before_single,  # From Single CSV file based on age
-            "risk_before_twin": risk_before_twin,      # From Twin CSV file based on age
-            "risk_after": risk_after,  # Single value based on detection result
-            "ppv": ppv,  # ">99" for T13/18/21 and SCA, null for others
-            "npv": npv   # ">99" for T13/18/21 and SCA, null for others
-        }
-        results.append(result)
-    
-    return results
-
 
 def read_chromosome_analysis_from_ezd(file_path):
     """Read chromosome analysis results from EZD detection files - For compatibility with existing code"""
@@ -809,6 +670,77 @@ def read_chromosome_analysis_from_ezd(file_path):
             "uar_threshold": "N<8.48~8.53<D"  # Standard threshold
         }
     
+    return chromosomes
+
+def read_chromosome_analysis_from_ezd_prizm_detailed(ezd_file_path, prizm_file_path):
+    """Read chromosome analysis results from EZD & PRIZM detection files with full chromosome table"""
+    logger.info(f"Reading EZD detailed data from: {ezd_file_path}")
+    logger.info(f"Reading PRIZM detailed data from: {prizm_file_path}")
+
+    ezd_df = safe_read_csv(ezd_file_path, sep="\t")
+    if ezd_df is None:
+        logger.warning(f"Failed to read EZD file: {ezd_file_path}")
+        return {}
+
+    logger.info(f"EZD file read successfully. Shape: {ezd_df.shape}, Columns: {list(ezd_df.columns)}")
+
+    prizm_df = pd.read_csv(prizm_file_path, sep='\t', comment='#')
+    if prizm_df is None:
+        logger.warning(f"Failed to read PRIZM file: {prizm_file_path}")
+        return {}
+
+    logger.info(f"PRIZM file read successfully. Shape: {prizm_df.shape}, Columns: {list(prizm_df.columns)}")
+
+    chromosomes = {}
+    merged_df = pd.merge(ezd_df, prizm_df[['Chromosome', 'Decision']], left_on='chr', right_on='Chromosome', how='inner')
+
+    for _, row in merged_df.iterrows():
+        chr_name = row['chr']
+
+        # Convert chromosome name to full name for display
+        chr_display_name = chr_name.replace('chr', 'Chromosome ')
+        if chr_display_name == 'Chromosome X':
+            chr_display_name = 'Chromosome X'
+        elif chr_display_name == 'Chromosome Y':
+            chr_display_name = 'Chromosome Y'
+
+        # EZD result
+        ezd_result = row['result']
+        if ezd_result == "Not Detected":
+            ezd_detection = "Low Risk"  # or "Not Detected" based on preference
+        elif ezd_result == "Detected" or "Suspected":
+            ezd_detection = "High Risk"
+        else:
+            ezd_detection = "Low Risk"  # Default fallback
+
+        # PRIZM result
+        if chr_name == 'chrY':
+            prizm_decision = None
+        else:
+            prizm_decision = row['Decision']
+            prizm_detection = "High Risk" if prizm_decision in ("Detected", "Suspected") else "Low Risk"
+
+        logger.debug(f"Processing {chr_name} -> {chr_display_name}: EZD={ezd_result} -> {ezd_detection}, PRIZM={prizm_decision} -> {prizm_detection}")
+
+        # For chrX and chrY, set thresholds to null initially
+        if chr_name in ['chrX', 'chrY']:
+            z_threshold = None
+            uar_threshold = None
+        else:
+            # Will be updated later from threshold file
+            z_threshold = None  # To be filled from threshold file
+            uar_threshold = None  # To be filled from threshold file
+
+        chromosomes[chr_display_name] = {
+            "EZD Detection": ezd_detection,
+            "PRIZM Detection": prizm_detection,
+            "Z-score": row['Z'] if pd.notna(row['Z']) else None,
+            "UAR(%)": row['UAR'] if pd.notna(row['UAR']) else None,
+            "Z-score threshold": z_threshold,
+            "UAR threshold": uar_threshold
+        }
+
+    logger.info(f"Processed {len(chromosomes)} chromosomes from EZD + PRIZM data")
     return chromosomes
 
 def read_chromosome_analysis_from_ezd_detailed(file_path):
@@ -855,7 +787,8 @@ def read_chromosome_analysis_from_ezd_detailed(file_path):
             uar_threshold = None  # To be filled from threshold file
 
         chromosomes[chr_display_name] = {
-            "Detection": detection,
+            "EZD Detection": ezd_detection,
+            "PRIZM Detection": prizm_detection,
             "Z-score": row['Z'] if pd.notna(row['Z']) else None,
             "UAR(%)": row['UAR'] if pd.notna(row['UAR']) else None,
             "Z-score threshold": z_threshold,
@@ -960,7 +893,8 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type='
                 "length": {"WC": None, "WCX": None},
                 "z_score": {"WC": None, "WCX": None},
                 "detected_region_link": {"WC": "", "WCX": ""},
-                "image": {"WC": "", "WCX": ""}
+                "image": {"WC": "", "WCX": ""},
+                "checked": False
             }
 
         # 이제 실제 검출 결과로 업데이트 (WC 파일)
@@ -1101,16 +1035,21 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
     """Build md_details section with proper default values"""
 
     md_sections = {
-        'md8_results': ('TargetDB_md8.bed', 'md8'),
-        'md108_results': ('TargetDB_md108.bed', 'md108'),
-        'md320_results': ('TargetDB_md320.bed', 'md320'),
-        'md87_results': ('TargetDB_md87.bed', 'md87')
+        'md8_results': ('TargetDB_md8.bed', 'md8', 'md8'),
+        'md108_results': ('TargetDB_md108.bed', 'md108', 'other_md108'),
+        'md320_results': ('TargetDB_md320.bed', 'md320', 'other_md320'),
+        'md87_results': ('TargetDB_md87.bed', 'md87', 'other_md87')
     }
 
     data_sources = ['orig', 'fetus', 'mom']
-    md_details = {}
 
-    for md_section, (bed_file, md_type) in md_sections.items():
+    md_details = {}
+    detected_md8_list = set()
+    detected_others = set()
+
+    detected_md_set = set()  # Set to track detected microdeletions
+    
+    for md_section, (bed_file, md_type, present_name) in md_sections.items():
         md_details[md_section] = {}
 
         # Process each data source
@@ -1127,16 +1066,25 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
             # MD detection files
             wc_file = f"{analysis_dir}/{sample_name}/Output_WC/{data_src}/{sample_name}_WC_{data_src}_{md_type}.tsv"
             wcx_file = f"{analysis_dir}/{sample_name}/Output_WCX/{data_src}/{sample_name}_WCX_{data_src}_{md_type}.tsv"
-
-            # Process detections with proper md_type parameter
             target_bed_path = f"{target_bed_dir}/{bed_file}"
+
             detections = process_md_detection(wc_file, wcx_file, data_src, target_bed_path, md_type)
 
             # Add detection results
             for md_key, md_data in detections.items():
                 md_details[md_section][data_src][md_key] = md_data
 
-    return md_details
+                if isinstance(md_data, dict) and "High Risk" in md_data.get("detection", {}).values():
+                    if md_section == "md8_results":
+                        disease_name = md_data.get("disease_name")
+                        if disease_name:
+                            detected_md8_list.add(disease_name)
+                    else:
+                        detected_others.add(present_name)
+
+    logger.info(f"Detected microdeletions: {detected_md_set}")
+
+    return md_details, sorted(detected_md8_list), sorted(detected_others)
 
 # ==============================================================
 # Main JSON Building Function
@@ -1150,6 +1098,20 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
         APPID: {
             "algorithm_version": version,
             "Summary": {},
+            "review": {
+                "reviewer1": {
+                    "Trisomy_result": "",
+                    "Trisomy_comment": "",
+                    "MD_result": "",
+                    "MD_comment": ""
+                },
+                "reviewer2": {
+                    "Trisomy_result": "",
+                    "Trisomy_comment": "",
+                    "MD_result": "",
+                    "MD_comment": ""
+                }
+            },
             "lab_test": {
                 "sample_suitability": "Pass",
                 "dna_quality": "Pass", 
@@ -1171,21 +1133,33 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
     # 1. Build final results table from actual data files
     final_results = build_final_results_table(analysis_dir, sample_name)
     
+    # 250610 : trisomy_result, md_result should have "Disease" list. So, I changed the return.
     if final_results:
         output[APPID]["final_results"] = {
-            "sample_id": sample_name,
+            "order_id": sample_name,
             "fetal_fraction_yff": f"{final_results['fetal_fraction_yff']}",
             "fetal_fraction_seqff": f"{final_results['fetal_fraction_seqff']}",
             "ff_ratio": str(final_results['ff_ratio']),
             "sample_bias": final_results['sample_bias_qc'],
-            "fetal_gender": final_results['fetal_gender'],
-            "trisomy_result": "Low Risk" if final_results['final_trisomy_result'] == ["Low Risk"] else "High Risk",
-            "md_result": "Low Risk" if final_results['md_results'] == ["Low Risk"] else "High Risk"
+            "fetal_gender": final_results['fetal_gender']
+            #"trisomy_result": "Low Risk" if final_results['final_trisomy_result'] == ["Low Risk"] else "High Risk",
+            #"md_result": "Low Risk" if final_results['md_results'] == ["Low Risk"] else "High Risk"
         }
     
     # 2. Read trisomy results
     trisomy_results = build_trisomy_results(analysis_dir, sample_name, age, target_bed_dir)
     output[APPID]["trisomy_results"] = trisomy_results
+    
+    # ----------------------------------------------
+    # 250610 : Trisomy detected list added. 
+    # put final_trisomy_result data
+    #high_risk_results = [f"{entry['disease_name']} {entry['result']}" for entry in trisomy_results if entry["result"] == "High Risk"]
+    high_risk_results = [f"{entry['disease_name']}" for entry in trisomy_results if entry["result"] == "High Risk"]
+    final_result_trisomy_output = high_risk_results if high_risk_results else ["Low Risk"]
+    output[APPID]["final_results"]['trisomy_result'] = final_result_trisomy_output
+    output[APPID]["review"]['reviewer1']['Trisomy_result'] = "High Risk" if high_risk_results else "Low Risk"
+    output[APPID]["review"]['reviewer2']['Trisomy_result'] = "High Risk" if high_risk_results else "Low Risk"
+    # ----------------------------------------------
     
     # 3. Build trisomy details
     groups = ['orig', 'fetus', 'mom']
@@ -1205,9 +1179,12 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
         }
         
         # Read chromosome analysis
-        chr_file = f"{analysis_dir}/{sample_name}/Output_EZD/{group}/Trisomy_detect_result_{group}_with_SCA.tsv"
-        logger.info(chr_file)
-        result_table = read_chromosome_analysis_from_ezd_detailed(chr_file) 
+        ezd_chr_file = f"{analysis_dir}/{sample_name}/Output_EZD/{group}/Trisomy_detect_result_{group}_with_SCA.tsv"
+        logger.info(ezd_chr_file)
+        prizm_chr_file = f"{analysis_dir}/{sample_name}/Output_PRIZM/{group}/{sample_name}_{group}.trisomy_detection.tsv"
+        logger.info(prizm_chr_file)
+        #result_table = read_chromosome_analysis_from_ezd_detailed(chr_file) 
+        result_table = read_chromosome_analysis_from_ezd_prizm_detailed(ezd_chr_file, prizm_chr_file) 
 
         threshold_file = f"{ref_dir}/EZD/{group}/{group}_thresholds_new.tsv"
         threshold_data = read_threshold_data(threshold_file)
@@ -1235,15 +1212,31 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
     
     # Add other syndromes
     md_results_table.extend([
-        {"item": "other_108md", "location": "other", "disease_name": "Other syndrome", "result": "Low Risk"},
-        {"item": "other_320md", "location": "other", "disease_name": "Other syndrome", "result": "Low Risk"},
-        {"item": "other_87md", "location": "other", "disease_name": "Other syndrome", "result": "Low Risk"}
+        {"item": "other_md108", "location": "other", "disease_name": "108 md syndrome", "result": "Low Risk"},
+        {"item": "other_md320", "location": "other", "disease_name": "320 md syndrome", "result": "Low Risk"},
+        {"item": "other_md87", "location": "other", "disease_name": "87 md syndrome", "result": "Low Risk"}
     ])
     
     output[APPID]["md_results"] = {"result_table": md_results_table}
     
     # 5. Build md_details (detailed results)
-    output[APPID]["md_details"] = build_md_details_section(analysis_dir, sample_name, target_bed_dir)
+    md_details, md8_detected, other_detected = build_md_details_section(analysis_dir, sample_name, target_bed_dir)
+    output[APPID]["md_details"] = md_details
+
+    logger.info(f"Detected MD8 diseases: {md8_detected}")
+    logger.info(f"Detected other MD diseases: {other_detected}")
+
+    # final_md_result update with Disease names
+    detected_md_output = [disease for disease in md8_detected + other_detected]
+    output[APPID]["final_results"]["md_result"] = detected_md_output 
+
+    output[APPID]["review"]['reviewer1']['MD_result'] = "High Risk" if len(detected_md_output) > 0 else "Low Risk"
+    output[APPID]["review"]['reviewer2']['MD_result'] = "High Risk" if len(detected_md_output) > 0 else "Low Risk"
+
+    # md_results_table update. It's initialized as "Low Risk" for all diseases.
+    for row in md_results_table:
+        if row["disease_name"] in md8_detected or row["item"] in other_detected:
+            row["result"] = "High Risk"
     
     # 6. Build quality control section
     try:
@@ -1348,7 +1341,7 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
                 analysis_qc = {
                     "fetal_fraction_yff": {
                         #"value": float(final_results['fetal_fraction_yff']) if final_results['fetal_fraction_yff'] else 12.73,
-                        "value": float(final_results['fetal_fraction_yff']), 
+                        "value": float(final_results['fetal_fraction_yff']) if final_results['fetal_fraction_yff'] != "N/A" else "N/A",
                         "unit": "%",
                         "status": "PASS",
                         "threshold": ">4%"
@@ -1361,6 +1354,7 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
                     },
                     "ff_ratio": {
                         "value": float(final_results['ff_ratio']),
+                        "unit": "%",
                         "status": "PASS",
                         "threshold": "<2"
                     },
