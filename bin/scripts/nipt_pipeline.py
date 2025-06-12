@@ -232,8 +232,8 @@ def parse_args():
     parser.add_argument('--labcode', required=True, help='Laboratory code (e.g., cordlife, ucl)')
     parser.add_argument('--age', required=True, help='Age of mom to calculate risk(before)')
     parser.add_argument('--config_dir', default='/Work/NIPT/config', help='Config directory path')
-    parser.add_argument('--skip_ff', action='store_true', help='Skip fetal fraction calculation')
-    parser.add_argument('--force', action='store_true', help='Force rerun even if completed')
+    parser.add_argument('--algorithm_only', action='store_true', help='Skip preprocessing and run only algorithms')
+    parser.add_argument('--force_run', action='store_true', help='Force rerun even if completed')
     
     return parser.parse_args()
 
@@ -1689,8 +1689,8 @@ def calculate_yff2(wig_norm_file, ff_config, paths):
         UAR_X = df_chrX["cor.gc"].sum() / autosome_sum * 100
 
         # Estimate FF
-        base = 0.0199917459497307
-        max_val = 0.0468805942976191
+        base = 0.02
+        max_val = 0.0469
         FF_chrY = (UAR_Y - base) / (max_val - base)
         FF_chrY_1 = round(FF_chrY, 3) * 10
         FF_chrY_2 = FF_chrY_1 + 0.55
@@ -3136,6 +3136,8 @@ def main():
     #gender = args.gender
     labcode = args.labcode
     age = args.age
+    algorithm_only = args.algorithm_only
+    force_run = args.force_run
 
     # Base directory structure
     root_dir = Path("/Work/NIPT")
@@ -3166,35 +3168,37 @@ def main():
     with open(config_file) as cf:
         config = json.load(cf)
 
+    log_and_print(f"Starting NIPT pipeline for sample: {sample_name}")
+    log_and_print(f"Lab code: {labcode}, Age: {age}")
+
+    if force_run:
+        log_and_print("--force_run option enabled: Will re-run even if completed previously", "WARNING")
+    
+    if algorithm_only:
+        log_and_print("--algorithm_only option enabled: Skipping preprocessing", "INFO")
+        progress.update_step(1, "Algorithm only mode : SKIP 1~7", "SKIP")
+        force_run = True
+
     fq1 = os.path.join(fastq_dir, sample_name, fastq_r1)
     fq2 = os.path.join(fastq_dir, sample_name, fastq_r2)
     if not os.path.isfile(fq1) or not os.path.isfile(fq2):
         log_and_print("FASTQ files not found after symbolic linking.", 'ERROR')
         return False
-
-    log_and_print(f"Starting NIPT pipeline for sample: {sample_name}")
-    log_and_print(f"Lab code: {labcode}, Age: {age}")
     log_and_print(f"FASTQ files: {fastq_r1}, {fastq_r2}")
 
     final_marker = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.pipeline_completed.marker"
-    # 250529 : Block it temporarily
-    if check_file_exists(final_marker, "Pipeline completion marker"):
-        log_and_print("Pipeline appears to have been completed previously.")
-        return
+
+    if not force_run:
+        if check_file_exists(final_marker, "Pipeline completion marker"):
+            log_and_print("Pipeline appears to have been completed previously.")
+            log_and_print("Use --force option to re-run the pipeline.", "INFO")
+            return 1
+    else:
+        if os.path.exists(final_marker):
+            os.remove(final_marker)
+            log_and_print(f"[Removed existing completion marker: {final_marker}")
 
     log_and_print(f"=== {sample_name}.pipeline_completed.marker was initialized ===")
-
-    log_and_print(f"=== Downsample Fastq check ===")
-
-    # 250529 : Block it temporarily
-    if not run_pipeline_step(1, "Downsample", downsample_fastq, progress, sample_name, fastq_r1, fastq_r2, config):
-        progress.mark_failed("Downsample failed")
-        return 1
-
-    log_and_print(f"=== Running FastQC ===")
-    if not run_pipeline_step(2, "FastQC", run_fastqc, progress, sample_name, fastq_r1, fastq_r2):
-        progress.mark_failed("FastQC failed")
-        return 1
 
     # Construct paths
     paths = {
@@ -3215,12 +3219,7 @@ def main():
         if md_key in config:
             paths["md_beds"][md_key] = bed_dir / config[md_key]["bed"]
 
-    log_and_print(f"=== Creating the default directories ===")
-    if not run_pipeline_step(3, "Creating directories", create_directories, progress, sample_name):
-        progress.mark_failed("Creating directories failed")
-        return 1
-
-    # KWON : I need to check if this log files is really needed.
+    # I need to check if this log files is really needed.
     sample_log_file = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.log"
     with open(sample_log_file, "w") as log_file:
         log_file.write(f"NIPT Pipeline Log for {sample_name}")
@@ -3235,37 +3234,57 @@ def main():
     except Exception as e:
         log_and_print(f"Could not initialize file logging: {e}", 'WARNING')
 
-    if not run_pipeline_step(4, "Creating symbolic links of Fastq", create_symbolic_links, progress, sample_name, fastq_r1, fastq_r2):
-        progress.mark_failed("Creating directories failed")
-        return 1
+    if not algorithm_only:
 
-    log_and_print("=== Starting BAM file generation ===")
-    if not generate_proper_paired_bam(sample_name, fastq_r1, fastq_r2, config, progress, base_step = 5):
-        progress.mark_failed("BAM generation failed")
-        return 1
-
-    log_and_print("=== Starting filter processing ===")
-    base_step = 6
-    step_counter =0 
-    for idx, (filter_type, filter_path) in enumerate(filter_paths.items(), 1):
-        step_num = f"{base_step}.{step_counter + 1}"
-        log_and_print(f"Processing filter: {filter_type}")
-
-        try:
-            process_filter(sample_name, filter_type, filter_path)
-            progress.update_step(step_num, f"Process {filter_type} filter", "PASS")
-            step_counter += 1
-
-        except Exception as e:
-            progress.update_step(step_num, f"Process {filter_type} filter", "FAIL")
-            log_and_print(f"Failed to process {filter_type} filter: {e}", 'ERROR')
+        log_and_print(f"=== Downsample Fastq check ===")
+        if not run_pipeline_step(1, "Downsample", downsample_fastq, progress, sample_name, fastq_r1, fastq_r2, config):
+            progress.mark_failed("Downsample failed")
             return 1
 
-    log_and_print("=== Starting NPZ and HMMcopy file generation ===")
-    if not run_pipeline_step(7, "Process HMMcopy", process_hmmcopy, progress, sample_name, paths):
-        progress.mark_failed("Process HMMcopy failed")
-        return 1
+        log_and_print(f"=== Running FastQC ===")
+        if not run_pipeline_step(2, "FastQC", run_fastqc, progress, sample_name, fastq_r1, fastq_r2):
+            progress.mark_failed("FastQC failed")
+            return 1
 
+        log_and_print(f"=== Creating the default directories ===")
+        if not run_pipeline_step(3, "Creating directories", create_directories, progress, sample_name):
+            progress.mark_failed("Creating directories failed")
+            return 1
+
+        if not run_pipeline_step(4, "Creating symbolic links of Fastq", create_symbolic_links, progress, sample_name, fastq_r1, fastq_r2):
+            progress.mark_failed("Creating directories failed")
+            return 1
+
+        log_and_print("=== Starting BAM file generation ===")
+        if not generate_proper_paired_bam(sample_name, fastq_r1, fastq_r2, config, progress, base_step = 5):
+            progress.mark_failed("BAM generation failed")
+            return 1
+
+        log_and_print("=== Starting filter processing ===")
+        base_step = 6
+        step_counter =0 
+        for idx, (filter_type, filter_path) in enumerate(filter_paths.items(), 1):
+            step_num = f"{base_step}.{step_counter + 1}"
+            log_and_print(f"Processing filter: {filter_type}")
+
+            try:
+                process_filter(sample_name, filter_type, filter_path)
+                progress.update_step(step_num, f"Process {filter_type} filter", "PASS")
+                step_counter += 1
+
+            except Exception as e:
+                progress.update_step(step_num, f"Process {filter_type} filter", "FAIL")
+                log_and_print(f"Failed to process {filter_type} filter: {e}", 'ERROR')
+                return 1
+
+        log_and_print("=== Starting NPZ and HMMcopy file generation ===")
+        if not run_pipeline_step(7, "Process HMMcopy", process_hmmcopy, progress, sample_name, paths):
+            progress.mark_failed("Process HMMcopy failed")
+            return 1
+
+    # -----------------------------------------------------
+    # if algorithm_only is True, run from this point
+    # -----------------------------------------------------
     log_and_print("=== Starting Calculation FF ===")
     try:
         yff_result, yff2_result, ff_results = calculate_fetal_fraction(sample_name, config, paths)
@@ -3313,8 +3332,9 @@ def main():
 
     # Comment : WC, WCX in run_wcfamily_prediction is performed. If WCFF is added, it would be better to check FF result
     # Orig
+    base_step = 9
     if check_file_exists_advanced(md_wcx_orig_result, "WC/WCX orig"):
-        progress.update_step(f"{base_step}.9", "Run WC/WCX/WCFF prediction (orig)", "SKIP", "file exists")
+        progress.update_step(f"{base_step}.1", "Run WC/WCX/WCFF prediction (orig)", "SKIP", "file exists")
     else:
         filter_type = "proper_paired"
         paths[f"ref_wc_orig_{filter_type}"] = paths["ref_lab"] / "WC" / f"orig_{config['WC']['ref']}_{filter_type}.npz"
@@ -3326,7 +3346,7 @@ def main():
 
     # Fetus
     if check_file_exists_advanced(md_wcx_fetus_result, "WC/WCX fetus"):
-        progress.update_step(f"{base_step}.9", "Run WC/WCX/WCFF prediction (fetus)", "SKIP", "file exists")
+        progress.update_step(f"{base_step}.2", "Run WC/WCX/WCFF prediction (fetus)", "SKIP", "file exists")
     else:
         filter_type = "of"
         paths[f"ref_wc_fetus_{filter_type}"] = paths["ref_lab"] / "WC" / f"fetus_{config['WC']['ref']}_{filter_type}.npz"
@@ -3337,7 +3357,7 @@ def main():
 
     # Mom
     if check_file_exists_advanced(md_wcx_mom_result, "WC/WCX mom"):
-        progress.update_step(f"{base_step}.9", "Run WC/WCX/WCFF prediction (mom)", "SKIP", "file exists")
+        progress.update_step(f"{base_step}.3", "Run WC/WCX/WCFF prediction (mom)", "SKIP", "file exists")
     else:
         filter_type = "of"
         paths[f"ref_wc_mom_{filter_type}"] = paths["ref_lab"] / "WC" / f"mom_{config['WC']['ref']}_{filter_type}.npz"
@@ -3465,7 +3485,7 @@ def main():
     if not json_completed:
         log_and_print("=== Starting Json Generation ===")
         try:
-            json_output_path = build_nipt_json(ANALYSIS_DIR, OUTPUT_DIR, f"{DATA_DIR}/refs/{labcode}", sample_name, age, VERSION, f"{bed_dir}/common")
+            json_output_path = build_nipt_json(ANALYSIS_DIR, OUTPUT_DIR, f"{DATA_DIR}/refs/{labcode}", sample_name, gender, age, VERSION, f"{bed_dir}/common")
             log_and_print(f"[JSON] Output json file saved to: {json_output_path}")
             progress.update_step(16, "Json Output Generation", "PASS")
         except Exception as e:

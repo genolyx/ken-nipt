@@ -9,6 +9,13 @@ ENV TZ=Asia/Seoul
 #RUN echo 'Acquire::AllowInsecureRepositories "true";' > /etc/apt/apt.conf.d/99insecure && \
 #    echo 'Acquire::AllowDowngradeToInsecureRepositories "true";' >> /etc/apt/apt.conf.d/99insecure
 
+# Install tzdata and set timezone
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Update package lists and install software-properties-common
 RUN apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \

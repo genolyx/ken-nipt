@@ -175,7 +175,7 @@ def run_ezd_pipeline(sample_name, wig_path, labcode, output_dir, group):
     data_rows.append({
         'Chromosome': 'chrY',
         'UAR': results['UAR_Y'],
-        'Z': np.nan  # Y 염색체는 Z-score 없음
+        'Z': 0.0  # Y 염색체는 Z-score 없음
     })
 
     ezd_df = pd.DataFrame(data_rows)
@@ -300,7 +300,7 @@ def add_sca_to_decision_df(decision_df, sca_results, config_type='orig'):
                 'chr': 'chrY',
                 'result': male_data['detection'],
                 'UAR': male_data['ur_y'],
-                'Z': '-'
+                'Z': 0.0
                 #'Z': np.nan
                 #,  # chrY는 Z-score 없음
                 #'config': config_type
@@ -440,9 +440,9 @@ def run_ezd_group(sample_name: str, group: str, wig_path: str, labcode: str, ana
     fetus_female = sca_detector.get_female_params('fetus')
     mom_female = sca_detector.get_female_params('mom')
 
-    logger.info(f"Orig Female XO threshold: {orig_female['xo_threshold']}")
-    logger.info(f"Fetus Female XO threshold: {fetus_female['xo_threshold']}")
-    logger.info(f"Mom Female XO threshold: {mom_female['xo_threshold']}")
+    logger.info(f"Orig Female XO threshold: {orig_female['xo_z_threshold']}")
+    logger.info(f"Fetus Female XO threshold: {fetus_female['xo_z_threshold']}")
+    logger.info(f"Mom Female XO threshold: {mom_female['xo_z_threshold']}")
 
 
     # Output directory
@@ -469,7 +469,16 @@ def run_ezd_group(sample_name: str, group: str, wig_path: str, labcode: str, ana
 
         # 3. Save results
         decision_output = join(output_dir, f'Trisomy_detect_result_{group}_with_SCA.tsv')
-        decision_df_extended.to_csv(decision_output, sep='\t', index=False)
+
+        decision_df_rounded = decision_df_extended.round({'UAR': 3, 'Z': 3})
+        decision_df_rounded.to_csv(decision_output, sep='\t', index=False)
+
+        # UAR, Z를 float으로 변환 후 반올림
+        #df_round['UAR'] = pd.to_numeric(decision_df_extended['UAR'], errors='coerce').round(3)
+        #df_round['Z']   = pd.to_numeric(decision_df_extended['Z'],   errors='coerce').round(3)
+
+        output = join(output_dir, f'Trisomy_detect_result_{group}_with_SCA.tsv')
+        decision_df_rounded.to_csv(decision_output, sep='\t', index=False)
 
         # 4. Plotting
         try:
@@ -517,8 +526,8 @@ def save_simple_ur_zscore_table(results, output_dir):
         # X 염색체 데이터
         f.write(f"chrX\t{results['UAR_X']:.4f}\t{results['second_zscore_X']:.6f}\n")
 
-        # Y 염색체 데이터 (Z-score는 '-')
-        f.write(f"chrY\t{results['UAR_Y']:.4f}\t-\n")
+        # Y 염색체 데이터 (Z-score는 0.0)
+        f.write(f"chrY\t{results['UAR_Y']:.4f}\t0.0\n")
 
     logger.info(f"Simple UAR/Z-score table saved to: {output_file}")
 
@@ -582,19 +591,32 @@ def add_sca_lines_to_chrx_plot(ax, config_type='orig'):
         if female_params is None:
             return
 
-        # XO threshold (가로선)
-        ax.axhline(y=female_params['xo_threshold'],
-                  color='gray', linestyle='--', alpha=0.8, linewidth=1)
+        logger.info(f"---------- Threshold ------------------")
+        logger.info(f"xo_z_threshold : {female_params['xo_z_threshold']}")
+        logger.info(f"xxx_z_threshold : {female_params['xxx_z_threshold']}")
+        logger.info(f"ur_x_low : {female_params['ur_x_low']}")
+        logger.info(f"ur_x_high : {female_params['ur_x_high']}")
+        logger.info(f"z_normal_low : {female_params['z_normal_low']}")
+        logger.info(f"z_normal_high : {female_params['z_normal_high']}")
+        logger.info(f"xo_ur_x_min : {female_params['xo_ur_x_min']}")
+        logger.info(f"xo_ur_x_max : {female_params['xo_ur_x_max']}")
+        logger.info(f"xxx_ur_x_min : {female_params['xxx_ur_x_min']}")
+        logger.info(f"xxx_ur_x_max : {female_params['xxx_ur_x_max']}")
+        logger.info(f"---------------------------------------")
 
-        # XXX threshold (가로선)
-        ax.axhline(y=female_params['xxx_threshold'],
-                  color='gray', linestyle='--', alpha=0.8, linewidth=1)
+        # XO threshold 
+        ax.axhline(y=female_params['xo_z_threshold'], color='gray', linestyle='--', alpha=0.8, linewidth=1)
+        ax.axvline(x=female_params['xo_ur_x_max'], color='gray', linestyle='--', alpha=0.8, linewidth=1)
 
-        # Normal range (세로선들)
-        ax.axvline(x=female_params['ur_x_min'],
-                  color='gray', linestyle='--', alpha=0.8, linewidth=1)
-        ax.axvline(x=female_params['ur_x_max'],
-                  color='gray', linestyle='--', alpha=0.8, linewidth=1)
+        # XXX threshold 
+        ax.axhline(y=female_params['xxx_z_threshold'], color='gray', linestyle='--', alpha=0.8, linewidth=1)
+        ax.axvline(x=female_params['xxx_ur_x_min'], color='gray', linestyle='--', alpha=0.8, linewidth=1)
+
+        # Normal range
+        ax.axhline(y=female_params['z_normal_high'], color='gray', linestyle='-', alpha=0.8, linewidth=1)
+        ax.axhline(y=female_params['z_normal_low'],  color='gray', linestyle='-', alpha=0.8, linewidth=1)
+        ax.axvline(x=female_params['ur_x_low'],  color='gray', linestyle='-', alpha=0.8, linewidth=1)
+        ax.axvline(x=female_params['ur_x_high'], color='gray', linestyle='-', alpha=0.8, linewidth=1)
 
         # plot 설정에서 axis limit 가져오기
         try:
@@ -642,14 +664,13 @@ def add_sca_lines_to_chry_plot(ax, config_type='orig'):
             return
 
         # 기존 임계값 라인들 (회색, 얇게)
-        ax.axvline(x=4.7, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-        ax.axvline(x=5.32, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-        ax.axvline(x=5.48, color='gray', linestyle='--', alpha=0.5, linewidth=1)
-        ax.axhline(y=0.035, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        #ax.axvline(x=4.7, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        #ax.axvline(x=5.32, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        #ax.axvline(x=5.48, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        #ax.axhline(y=0.035, color='gray', linestyle='--', alpha=0.5, linewidth=1)
 
         # XYY/XXY 구분 세로선 (config 기반)
-        ax.axvline(x=male_params['ur_x_threshold'],
-                  color='gray', linestyle='-', alpha=0.8, linewidth=1)
+        ax.axvline(x=male_params['ur_x_threshold'], color='gray', linestyle='-', alpha=0.8, linewidth=1)
 
         # SCA 경계선 (대각선, config 기반)
         x_line = np.linspace(4.0, 6.0, 100)

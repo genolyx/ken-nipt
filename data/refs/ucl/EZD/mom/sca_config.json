@@ -15,12 +15,12 @@
             "description": "Male SCA detection not applicable for maternal reference"
         },
         "female": {
-            "xo_threshold": -5.5,
-            "xxx_threshold": 5.0,
-            "ur_x_min": 5.4,
-            "ur_x_max": 5.6,
-            "z_normal_min": -2.5,
-            "z_normal_max": 1.5,
+            "xo_z_threshold": -5.5,
+            "xxx_z_threshold": 5.0,
+            "ur_x_low": 5.4,
+            "ur_x_high": 5.6,
+            "z_normal_low": -2.5,
+            "z_normal_high": 1.5,
             "xo_ur_x_min": 5.0,
             "xo_ur_x_max": 5.3,
             "xxx_ur_x_min": 5.7,

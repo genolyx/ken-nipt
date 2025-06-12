@@ -423,7 +423,7 @@ def read_risk_before_data(age, common_data_dir):
         logger.error(f"Error reading risk_before data: {e}")
         return {}
 
-def build_trisomy_results(analysis_dir, sample_name, age, common_data_dir):
+def build_trisomy_results(analysis_dir, sample_name, fetus_gender, age, common_data_dir):
     """Build trisomy results from EZD detection result files"""
 
     trisomy_order = ["Trisomy21", "Trisomy18", "Trisomy13", "Trisomy9",
@@ -512,14 +512,22 @@ def build_trisomy_results(analysis_dir, sample_name, age, common_data_dir):
         orig_detected = False
         fetus_detected = False
 
+        logger.info(f"target_chrs : {target_chrs}")
         for chr_name in target_chrs:
+            logger.info(f"chr_name = {chr_name}")
             # Check original results
             if chr_name in orig_df['chr'].values:
                 orig_row = orig_df[orig_df['chr'] == chr_name].iloc[0]
 
-                # Check for specific SCA conditions in result column
-                if chr_name in ["chrX", "chrY"]:
-                    if trisomy in orig_row['result']:
+                # SCA 처리: chrX / chrY 분리
+                if chr_name == "chrX":
+                    # XO, XXX 은 여아에서만 계산
+                    if fetus_gender in ("F", "Female") and trisomy in orig_row['result']:
+                        orig_detected = True
+
+                elif chr_name == "chrY":
+                    # XXY, XYY 은 남아에서만 계산
+                    if fetus_gender in ("M", "Male") and trisomy in orig_row['result']:
                         orig_detected = True
                 else:
                     # For autosomal trisomies, check if detected
@@ -527,19 +535,30 @@ def build_trisomy_results(analysis_dir, sample_name, age, common_data_dir):
                     if orig_row['result'] != "Not Detected":
                         orig_detected = True
 
+            logger.info(f"chr_name : {chr_name}, orig_detected = {orig_detected}")
+
             # Check fetus results
             if chr_name in fetus_df['chr'].values:
                 fetus_row = fetus_df[fetus_df['chr'] == chr_name].iloc[0]
 
                 # Check for specific SCA conditions in result column
-                if chr_name in ["chrX", "chrY"]:
-                    if trisomy in fetus_row['result']:
-                        fetus_detected = True
+                # SCA 처리: chrX / chrY 분리
+                if chr_name == "chrX":
+                    # XO, XXX 은 여아에서만 계산
+                    if fetus_gender in ("F", "Female") and trisomy in fetus_row['result']:
+                        orig_detected = True
+
+                elif chr_name == "chrY":
+                    # XXY, XYY 은 남아에서만 계산
+                    if fetus_gender in ("M", "Male") and trisomy in fetus_row['result']:
+                        orig_detected = True
                 else:
                     # For autosomal trisomies, check if detected
                     if fetus_row['result'] != "Not Detected":
                     #if "Not Detected" not in fetus_row['result']:
                         fetus_detected = True
+
+            logger.info(f"chr_name : {chr_name}, fetus_detected = {fetus_detected}")
 
         # Determine final result based on both orig and fetus results
         if orig_detected and fetus_detected:
@@ -672,7 +691,7 @@ def read_chromosome_analysis_from_ezd(file_path):
     
     return chromosomes
 
-def read_chromosome_analysis_from_ezd_prizm_detailed(ezd_file_path, prizm_file_path):
+def read_chromosome_analysis_from_ezd_prizm_detailed(ezd_file_path, prizm_file_path, fetus_gender):
     """Read chromosome analysis results from EZD & PRIZM detection files with full chromosome table"""
     logger.info(f"Reading EZD detailed data from: {ezd_file_path}")
     logger.info(f"Reading PRIZM detailed data from: {prizm_file_path}")
@@ -705,17 +724,24 @@ def read_chromosome_analysis_from_ezd_prizm_detailed(ezd_file_path, prizm_file_p
             chr_display_name = 'Chromosome Y'
 
         # EZD result
-        ezd_result = row['result']
-        if ezd_result == "Not Detected":
-            ezd_detection = "Low Risk"  # or "Not Detected" based on preference
-        elif ezd_result == "Detected" or "Suspected":
-            ezd_detection = "High Risk"
+        if chr_name == 'chrX' and fetus_gender in ('M', 'Male'):
+            ezd_detection = "Low Risk"
+        elif chr_name == 'chrY' and fetus_gender in ('F', 'Female'):
+            ezd_detection = "Low Risk" 
         else:
-            ezd_detection = "Low Risk"  # Default fallback
+            ezd_result = row['result']
+            if ezd_result == "Not Detected":
+                ezd_detection = "Low Risk"  # or "Not Detected" based on preference
+            elif ezd_result == "Detected" or "Suspected":
+                ezd_detection = "High Risk"
+            else:
+                ezd_detection = "Low Risk"  # Default fallback
 
         # PRIZM result
+        if chr_name == 'chrX' and fetus_gender in ('M', 'Male'):
+            prizm_detection = "Low Risk"
         if chr_name == 'chrY':
-            prizm_decision = None
+            prizm_detection = "Low Risk"
         else:
             prizm_decision = row['Decision']
             prizm_detection = "High Risk" if prizm_decision in ("Detected", "Suspected") else "Low Risk"
@@ -1089,7 +1115,7 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
 # ==============================================================
 # Main JSON Building Function
 # ==============================================================
-def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version, target_bed_dir):
+def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender, age, version, target_bed_dir):
     """Build complete NIPT JSON structure matching output.json"""
     
     # Initialize output structure
@@ -1147,7 +1173,7 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
         }
     
     # 2. Read trisomy results
-    trisomy_results = build_trisomy_results(analysis_dir, sample_name, age, target_bed_dir)
+    trisomy_results = build_trisomy_results(analysis_dir, sample_name, fetus_gender, age, target_bed_dir)
     output[APPID]["trisomy_results"] = trisomy_results
     
     # ----------------------------------------------
@@ -1160,6 +1186,7 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
     output[APPID]["review"]['reviewer1']['Trisomy_result'] = "High Risk" if high_risk_results else "Low Risk"
     output[APPID]["review"]['reviewer2']['Trisomy_result'] = "High Risk" if high_risk_results else "Low Risk"
     # ----------------------------------------------
+
     
     # 3. Build trisomy details
     groups = ['orig', 'fetus', 'mom']
@@ -1180,11 +1207,9 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
         
         # Read chromosome analysis
         ezd_chr_file = f"{analysis_dir}/{sample_name}/Output_EZD/{group}/Trisomy_detect_result_{group}_with_SCA.tsv"
-        logger.info(ezd_chr_file)
         prizm_chr_file = f"{analysis_dir}/{sample_name}/Output_PRIZM/{group}/{sample_name}_{group}.trisomy_detection.tsv"
-        logger.info(prizm_chr_file)
         #result_table = read_chromosome_analysis_from_ezd_detailed(chr_file) 
-        result_table = read_chromosome_analysis_from_ezd_prizm_detailed(ezd_chr_file, prizm_chr_file) 
+        result_table = read_chromosome_analysis_from_ezd_prizm_detailed(ezd_chr_file, prizm_chr_file, fetus_gender) 
 
         threshold_file = f"{ref_dir}/EZD/{group}/{group}_thresholds_new.tsv"
         threshold_data = read_threshold_data(threshold_file)
@@ -1347,7 +1372,7 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, age, version
                         "threshold": ">4%"
                     },
                     "fetal_fraction_seqff": {
-                        "value": float(final_results['fetal_fraction_seqff']), 
+                        "value": round(float(final_results['fetal_fraction_seqff']), 3),
                         "unit": "%",
                         "status": "PASS", 
                         "threshold": ">4%"
