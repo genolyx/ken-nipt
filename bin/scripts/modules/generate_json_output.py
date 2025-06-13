@@ -1128,6 +1128,20 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
 
     return md_details, sorted(detected_md8_list), sorted(detected_others), wcx_chr_list_total
 
+def find_fastqc_reports(qc_dir, sample_subdir=""):
+    """
+    qc_dir: Output_QC 가 있는 최상위 경로
+    sample_subdir: sample 폴더 안에 있으면 그 이름(예: sample_name)
+    """
+    base = os.path.join(qc_dir, sample_subdir)
+    # R1/R2 HTML 파일 전부 스캔
+    all_htmls = glob.glob(os.path.join(base, "*_fastqc.html"))
+
+    fastqc_r1 = next((os.path.relpath(p, base) for p in all_htmls if "_R1_" in os.path.basename(p)), None)
+    fastqc_r2 = next((os.path.relpath(p, base) for p in all_htmls if "_R2_" in os.path.basename(p)), None)
+
+    return fastqc_r1, fastqc_r2
+
 # ==============================================================
 # Main JSON Building Function
 # ==============================================================
@@ -1429,13 +1443,18 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
             except Exception as e:
                 logger.error(f"Error building analysis QC: {e}")
                 analysis_qc = {}
+
+        qc_dir = os.path.join(analysis_dir, sample_name, "Output_QC")
+        fastqc_r1_report, fastqc_r2_report = find_fastqc_reports(qc_dir) 
         
         output[APPID]["quality_control"] = {
             "sequencing_metrics": sequencing_metrics,
             "analysis_qc": analysis_qc,
             "qc_files": {
-                "qualimap_report": f"Output_QC/{sample_name}.Qualimap.zip",
-                "qc_summary_report": f"Output_QC/qualimapReport.html"
+                "Fastqc_R1_report": f"Output_QC/{fastqc_r1_report}",
+                "Fastqc_R2_report": f"Output_QC/{fastqc_r2_report}",
+                #"qualimap_report": f"Output_QC/{sample_name}.Qualimap.zip",
+                "Qualimap_report": f"Output_QC/qualimapReport.html"
             }
         }
 
@@ -1456,7 +1475,9 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
     
     # 8. Build S3 upload files
     output["S3_upload_files"] = {
-        "qualimap_report_button": f"Output_QC/{sample_name}.Qualimap.zip",
+        #"qualimap_report_button": f"Output_QC/{sample_name}.Qualimap.zip",
+        "qualimap_report_button": f"Output_QC/qualimapReport.html",
+        "qualimap_report_button": f"Output_QC/qualimapReport.html",
         "original_ezd_image": f"Output_EZD/orig_EZD_grid.png",
         "original_prizm_chromosome_image": f"Output_PRIZM/{sample_name}_orig_chromosome_line.png",
         "original_prizm_10mb_image": f"Output_PRIZM/{sample_name}_orig_10mb_line.png",

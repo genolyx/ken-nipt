@@ -440,19 +440,15 @@ def generate_final_results_section(data):
         """결과 값에 따른 CSS 클래스 결정"""
         # 1) 리스트일 때
         if isinstance(value, list):
+            normal_terms = {'Low Risk', 'Normal', 'Not Detected'}
+            # 1) 빈 리스트: 정상
             if not value:
-                return "status-normal"   # 빈 리스트 → 정상
-            # 리스트에 실제 항목을 보고 정상/비정상 판단
-            normal_terms   = {'Low Risk', 'Normal', 'Not Detected'}
-            abnormal_terms = {'High Risk', 'Abnormal', 'Detected'}
-            # 비정상 용어가 하나라도 있으면 abnormal
-            if any(item in abnormal_terms for item in value):
-                return "status-abnormal"
-            # 모두 정상 용어라면 normal
-            if all(item in normal_terms for item in value):
                 return "status-normal"
-            # 그 외는 기본
-            return ""
+            # 2) 리스트에 하나라도 정상 용어가 아닌 항목이 있으면 비정상
+            if any(item not in normal_terms for item in value):
+                return "status-abnormal"
+            # 3) 모두 정상 용어만 있을 경우: 정상
+            return "status-normal"
 
         # 2) 스칼라 값일 때 (기존 로직)
         if 'Result' in label:
@@ -1164,8 +1160,9 @@ def generate_quality_control_section(data, sample_id=None):
         """
         
         file_buttons = [
-            ('qualimap_report', 'Qualimap Report', 'btn btn-report'),
-            ('qc_summary_report', 'QC Summary Report', 'btn btn-report')
+            ('Fastqc_R1_report', 'FastQC R1 Report', 'btn btn-report'),
+            ('Fastqc_R2_report', 'FastQC R2 Report', 'btn btn-report'),
+            ('Qualimap_report', 'Qualimap Report', 'btn btn-report')
         ]
         
         for file_key, button_text, button_class in file_buttons:
