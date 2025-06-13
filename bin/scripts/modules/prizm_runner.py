@@ -774,7 +774,7 @@ def perform_qc_analysis_old(zscore_df: pd.DataFrame, cutoff: float, output_file:
 # PLOTTING FUNCTIONS (UPDATED)
 # ============================================================================
 
-def plot_zscore_by_chromosome_filtered(df, output_dir, sample_name="sample", extremes_count=2, file_prefix=None):
+def plot_zscore_by_chromosome_filtered(df, output_dir, sample_name="sample", extremes_count=2, file_prefix=None, dpi=200):
     
     # Data copy
     df_mod = df.copy()
@@ -959,8 +959,7 @@ def plot_zscore_by_chromosome_filtered(df, output_dir, sample_name="sample", ext
         if mapped_name in special_chrs and i < len(chr_boundaries) - 1:
             start = chr_boundaries[i]
             end = chr_boundaries[i+1]
-            highlight = patches.Rectangle((start, -6), end - start, 12, 
-                                         facecolor='pink', alpha=0.2, zorder=0)
+            highlight = patches.Rectangle((start, -6), end - start, 12, facecolor='pink', alpha=0.2, zorder=0)
             ax.add_patch(highlight)
     
     # Axis settings
@@ -987,12 +986,12 @@ def plot_zscore_by_chromosome_filtered(df, output_dir, sample_name="sample", ext
     
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.savefig(filename, dpi=dpi, bbox_inches='tight')
     plt.close()
     logger.info(f"PRIZM chromosome line plot saved to: {filename}")
 
 
-def plot_10mb_zscore_by_chromosome_filtered(df, output_dir, sample_name="10mb", extremes_count=2, file_prefix=None):
+def plot_10mb_zscore_by_chromosome_filtered(df, output_dir, sample_name="10mb", extremes_count=2, file_prefix=None, dpi=200):
 
     df_mod = df.copy()
 
@@ -1144,8 +1143,7 @@ def plot_10mb_zscore_by_chromosome_filtered(df, output_dir, sample_name="10mb", 
         if idx < len(chr_boundaries) - 1:
             start = chr_boundaries[idx]
             end = chr_boundaries[idx + 1]
-            highlight = patches.Rectangle((start, -6), end - start, 12,
-                                         facecolor='pink', alpha=0.2, zorder=0)
+            highlight = patches.Rectangle((start, -6), end - start, 12, facecolor='pink', alpha=0.2, zorder=0)
             ax.add_patch(highlight)
 
     # 축 설정
@@ -1179,13 +1177,13 @@ def plot_10mb_zscore_by_chromosome_filtered(df, output_dir, sample_name="10mb", 
         filename = f'{output_dir}/prizm_chromosome_zscore_plot.png'
     
     os.makedirs(output_dir, exist_ok=True)
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.savefig(filename, dpi=dpi, bbox_inches='tight')
     plt.close()
     logger.info(f"PRIZM 10mb chromosome line plot saved to: {filename}")
 
     return
 
-def generate_prizm_plots(results: PRIZMResult, output_dir: str, sample_name: str, group: str = ""):
+def generate_prizm_plots(results: PRIZMResult, output_dir: str, sample_name: str, group: str = "", dpi = 200):
     """Generate PRIZM plots - both heatmaps and line plots"""
     
     logger.info("Generating PRIZM visualization plots...")
@@ -1209,7 +1207,7 @@ def generate_prizm_plots(results: PRIZMResult, output_dir: str, sample_name: str
         plt.xticks(range(len(results.zscore_chr.columns)), results.zscore_chr.columns, rotation=45)
         plt.yticks(range(len(results.zscore_chr.index)), results.zscore_chr.index)
         plt.tight_layout()
-        plt.savefig(f'{output_dir}/{file_prefix}_chromosome_heatmap.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{output_dir}/{file_prefix}_chromosome_heatmap.png', dpi=dpi, bbox_inches='tight')
         plt.close()
         
         # 2. 10mb heatmap (using 10mb_all if available, otherwise regular 10mb)
@@ -1247,7 +1245,7 @@ def generate_prizm_plots(results: PRIZMResult, output_dir: str, sample_name: str
             plt.xlabel('10mb bins (by chromosome)')
             plt.ylabel('Chromosomes')
             plt.tight_layout()
-            plt.savefig(f'{output_dir}/{file_prefix}_10mb_heatmap.png', dpi=300, bbox_inches='tight')
+            plt.savefig(f'{output_dir}/{file_prefix}_10mb_heatmap.png', dpi=dpi, bbox_inches='tight')
             plt.close()
             
             logger.info(f"10mb_all heatmap saved to: {output_dir}/{file_prefix}_10mb_heatmap.png")
@@ -1260,7 +1258,7 @@ def generate_prizm_plots(results: PRIZMResult, output_dir: str, sample_name: str
             plt.xticks(range(len(results.zscore_10mb.columns)), results.zscore_10mb.columns, rotation=45)
             plt.yticks(range(len(results.zscore_10mb.index)), results.zscore_10mb.index)
             plt.tight_layout()
-            plt.savefig(f'{output_dir}/{file_prefix}_10mb_heatmap.png', dpi=300, bbox_inches='tight')
+            plt.savefig(f'{output_dir}/{file_prefix}_10mb_heatmap.png', dpi=dpi, bbox_inches='tight')
             plt.close()
         
         # ===== LINE PLOTS =====
@@ -1851,7 +1849,8 @@ def run_multiple_prizm_analysis(sample_name, gender, labcode, config, analysis_d
                 skip_plots=not enable_plots,
                 output_dir=analysis_output_dir,
                 enable_10mb_all=enable_10mb_all,
-                group=analysis_type  # Pass the group for proper filename generation
+                group=analysis_type,  # Pass the group for proper filename generation
+                dpi=config.get('PRIZM', {}).get('resolution_dpi', 200)
             )
             
             if results:
@@ -2053,7 +2052,7 @@ def run_prizm_analysis(count_file_10mb: str, mean_file: str, sd_file: str,
                        mean_10mb_all_file: str = None, sd_10mb_all_file: str = None,
                        sample_name: str = None, qc_cutoff: float = 3.0,
                        skip_plots: bool = False, output_dir: str = None,
-                       enable_10mb_all: bool = True, group: str = "") -> PRIZMResult:
+                       enable_10mb_all: bool = True, group: str = "", dpi = 200) -> PRIZMResult:
     """
     Run PRIZM analysis programmatically from other scripts
     
@@ -2138,7 +2137,7 @@ def run_prizm_analysis(count_file_10mb: str, mean_file: str, sd_file: str,
     
     # Generate plots if not skipped
     if not skip_plots:
-        generate_prizm_plots(results, output_dir, sample_name, group)
+        generate_prizm_plots(results, output_dir, sample_name, group, dpi)
     
     logger.info(f"PRIZM analysis completed for sample: {sample_name}")
     

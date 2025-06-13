@@ -893,6 +893,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type='
     """Process WC and WCX detection results with default values - Updated for md108, md87, md320"""
 
     results = {}
+    wcx_chr_list = []
 
     # md8의 경우 고정된 8개 질병을 사용
     if md_type == 'md8':
@@ -956,6 +957,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type='
                         results[md_key]["z_score"]["WCX"] = str(row['zscore'])
                         results[md_key]["detected_region_link"]["WCX"] = f"https://deciphergenomics.org/browser#q/grch37:{detected_region}"
                         results[md_key]["image"]["WCX"] = f"Output_WCX/chr_plots/{data_src}/chr{row['chr']}.png"
+                        wcx_chr_list.append(wcx_data['chr'])
                         break
 
     else:
@@ -1039,6 +1041,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type='
                     results[md_key]["z_score"]["WCX"] = wcx_data['z_score']
                     results[md_key]["detected_region_link"]["WCX"] = f"https://deciphergenomics.org/browser#q/grch37:{wcx_data['detected_region']}"
                     results[md_key]["image"]["WCX"] = f"Output_WCX/chr_plots/{data_src}/chr{wcx_data['chr']}.png"
+                    wcx_chr_list.append(wcx_data['chr'])
 
         else:
             # 검출된 결과가 없으면 기본 md1만 null 값으로 생성
@@ -1053,7 +1056,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type='
                 "image": {"WC": "", "WCX": ""}
             }
 
-    return results
+    return results, wcx_chr_list
 
 
 # build_nipt_json 함수에서 md_details 섹션 수정
@@ -1068,6 +1071,9 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
     }
 
     data_sources = ['orig', 'fetus', 'mom']
+ 
+    wcx_chr_list_total = {g: [] for g in data_sources}
+    _seen = {g: set() for g in data_sources}
 
     md_details = {}
     detected_md8_list = set()
@@ -1094,7 +1100,14 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
             wcx_file = f"{analysis_dir}/{sample_name}/Output_WCX/{data_src}/{sample_name}_WCX_{data_src}_{md_type}.tsv"
             target_bed_path = f"{target_bed_dir}/{bed_file}"
 
-            detections = process_md_detection(wc_file, wcx_file, data_src, target_bed_path, md_type)
+            detections, wcx_chr_list = process_md_detection(wc_file, wcx_file, data_src, target_bed_path, md_type)
+
+            logger.info(f"wcx_chr_list for {data_src}: {wcx_chr_list}")
+            # wcx_chr_list_total에 중복 없이 추가
+            for chrom in wcx_chr_list:
+                if chrom not in _seen[data_src]:
+                    _seen[data_src].add(chrom)
+                    wcx_chr_list_total[data_src].append(chrom)
 
             # Add detection results
             for md_key, md_data in detections.items():
@@ -1108,9 +1121,12 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
                     else:
                         detected_others.add(present_name)
 
+    logger.info(f"[WCX chromosome plots-orig] {wcx_chr_list_total['orig']}")
+    logger.info(f"[WCX chromosome plots-fetus] {wcx_chr_list_total['fetus']}")
+    logger.info(f"[WCX chromosome plots-mom] {wcx_chr_list_total['mom']}")
     logger.info(f"Detected microdeletions: {detected_md_set}")
 
-    return md_details, sorted(detected_md8_list), sorted(detected_others)
+    return md_details, sorted(detected_md8_list), sorted(detected_others), wcx_chr_list_total
 
 # ==============================================================
 # Main JSON Building Function
@@ -1245,11 +1261,13 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
     output[APPID]["md_results"] = {"result_table": md_results_table}
     
     # 5. Build md_details (detailed results)
-    md_details, md8_detected, other_detected = build_md_details_section(analysis_dir, sample_name, target_bed_dir)
+    logger.info("Calling build_md_details_section ...")
+    md_details, md8_detected, other_detected, wcx_chr_list_total = build_md_details_section(analysis_dir, sample_name, target_bed_dir)
     output[APPID]["md_details"] = md_details
 
     logger.info(f"Detected MD8 diseases: {md8_detected}")
     logger.info(f"Detected other MD diseases: {other_detected}")
+    logger.info(f"WCX detectedchromosome list: {wcx_chr_list_total}")
 
     # final_md_result update with Disease names
     detected_md_output = [disease for disease in md8_detected + other_detected]
@@ -1371,7 +1389,7 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
         try:
             with open(prizm_qc_file, 'r') as qc_f:
                 parts = qc_f.read().strip().split()
-                sample_bias_value = float(parts[0])
+                sample_bias_value = round(float(parts[0]), 3)
                 sample_bias_status = parts[1]
 
         except Exception as e:
@@ -1478,14 +1496,14 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
             logger.info(f"NIPT JSON successfully saved: {json_output_path} ({file_size} bytes)")
 
             # 파일 경로 반환 (JSON 데이터가 아닌!)
-            return json_output_path
+            return json_output_path, wcx_chr_list_total
         else:
             logger.error(f"JSON file was not created: {json_output_path}")
-            return None
+            return None, None
 
     except Exception as e:
         logger.error(f"Failed to save JSON file to {json_output_path}: {e}")
-        return None
+        return None, None
     
 
 # ==============================================================
@@ -1514,7 +1532,7 @@ if __name__ == '__main__':
 
     # Generate JSON
     #data = build_nipt_json(args.analysis_dir, args.output_dir, args.sample_name, args.version, args.config_file, args.target_bed_dir)
-    data = build_nipt_json(args.analysis_dir, args.output_dir, args.sample_name, args.version, args.target_bed_dir)
+    data, wcx_chr_dict = build_nipt_json(args.analysis_dir, args.output_dir, args.sample_name, args.version, args.target_bed_dir)
     
     # Save JSON file
     file_path = f"{args.output_dir}/{args.sample_name}/{args.sample_name}.json"

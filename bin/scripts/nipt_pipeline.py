@@ -1033,7 +1033,8 @@ def generate_proper_paired_bam(sample_name, fastq_r1, fastq_r2, config, progress
     sorted_bam = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.sorted.bam"
     sorted_bam_index = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.sorted.bam.bai"
     qualimap_output = f"{ANALYSIS_DIR}/{sample_name}/Output_QC"
-    qualimap_zip = f"{ANALYSIS_DIR}/{sample_name}/Output_QC/{sample_name}.Qualimap.zip"
+    #qualimap_zip = f"{ANALYSIS_DIR}/{sample_name}/Output_QC/{sample_name}.Qualimap.zip"
+    qualimap_html = f"{ANALYSIS_DIR}/{sample_name}/Output_QC/qualimapReport.html"
     dedup_bam = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.dedup.bam"
     dedup_bam_index = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.dedup.bam.bai"
     uniq_bam = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.uniq.bam"
@@ -1076,9 +1077,9 @@ def generate_proper_paired_bam(sample_name, fastq_r1, fastq_r2, config, progress
             return False
 
     # 3. Run Qualimap
-    if check_file_exists_advanced(qualimap_zip, "Qualimap ZIP file", "zip"):
+    if check_file_exists_advanced(qualimap_html, "Qualimap html file", "html"):
         progress.update_step(f"{base_step}.3", "Qualiimap execution", "SKIP", "file exists")
-        progress.update_step(f"{base_step}.4", "Qualiimap zipping", "SKIP", "file exists")
+        #progress.update_step(f"{base_step}.4", "Qualiimap zipping", "SKIP", "file exists")
     else:
         if run_command(
             "Qualimap",
@@ -1091,6 +1092,8 @@ def generate_proper_paired_bam(sample_name, fastq_r1, fastq_r2, config, progress
             log_and_print("Qualimap failed. Pipeline terminated.", 'ERROR')
             return False
 
+        # Don't need to zip it
+        '''
         if run_command(
             "Zip Qualimap results",
             f"zip -r {qualimap_zip} {qualimap_output}"
@@ -1100,7 +1103,7 @@ def generate_proper_paired_bam(sample_name, fastq_r1, fastq_r2, config, progress
             progress.update_step(f"{base_step}.4", "Qualimap ZIP", "FAIL")
             log_and_print("Zip Qualimap results failed. Pipeline terminated.", 'ERROR')
             return False
-
+        '''
 
     # 4.1 QC filter
     if not check_file_exists(qc_filter_result, "QC filter result"):
@@ -2355,69 +2358,61 @@ def run_prizm_pipeline(sample_name, config):
         log_and_print(f"PRIZM analysis failed: {str(e)}", 'ERROR')
         return False
 
-def copy_outputs_to_final_dir_simple(sample_name: str, analysis_dir: str, output_dir: str):
-    """
-    Copies relevant output files from analysis_dir to the final output_dir.
-    Organizes results under Output_WC, Output_WCX, Output_WCFF, Output_EZD, Output_PRIZM, and Output_QC.
-    """
-    group_list = ["orig", "fetus", "mom"]
+def _process_rule(analysis_dir, output_dir, sample, src_rel, cfg, mapping):
+    # dest 필수
+    if "dest" not in cfg:
+        raise KeyError(f"Rule for '{src_rel}' must define a 'dest' key")
 
-    def safe_copy(src, dst):
-        try:
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            if os.path.exists(src):
-                shutil.copy2(src, dst)
-        except Exception as e:
-            log_and_print(f"Failed to copy {src} to {dst}: {e}", 'ERROR')
+    src_sub  = src_rel.format(**mapping)
+    dest_sub = cfg["dest"].format(**mapping)
 
-    def safe_copy_to_dir(src, dst_dir):
-        try:
-            os.makedirs(dst_dir, exist_ok=True)
-            if os.path.exists(src):
-                shutil.copy2(src, dst_dir)  # 디렉토리로 복사 (원본 파일명 유지)
-        except Exception as e:
-            log_and_print(f"Failed to copy {src} to {dst_dir}: {e}", 'ERROR')
+    src_base  = os.path.join(analysis_dir, sample, src_sub)
+    dest_base = os.path.join(output_dir,   sample, dest_sub)
 
-    def copy_all_files(src_dir, dst_dir):
-        """디렉토리의 모든 파일을 다른 디렉토리로 복사"""
-        # 방법 1: glob 사용
-        for file_path in glob.glob(os.path.join(src_dir, '*')):
-            if os.path.isfile(file_path):
-                safe_copy_to_dir(file_path, dst_dir)
+    for pat in cfg["patterns"]:
+        pat_filled = pat.format(**mapping)
+        full_pat   = os.path.join(src_base, pat_filled)
+        matches    = glob.glob(full_pat)
 
-    for group in group_list:
-        # WC
-        wc_src = os.path.join(analysis_dir, sample_name, "Output_WC", group)
-        safe_copy_to_dir(os.path.join(wc_src, f"{sample_name}.wc.{group}.report.txt"),
-                  os.path.join(output_dir, sample_name, "Output_WC"))
+        for src_path in matches:
+            # 새 파일명 결정: rename 있으면 그걸, 없으면 원본 basename
+            if "rename" in cfg:
+                new_name = cfg["rename"].format(**mapping)
+            else:
+                new_name = os.path.basename(src_path)
 
-        safe_copy_to_dir(os.path.join(wc_src, f"{sample_name}.wc.{group}.png"),
-                  os.path.join(output_dir, sample_name, "Output_WC"))
+            dst_path = os.path.join(dest_base, new_name)
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
 
-        # WCX
-        wcx_src = os.path.join(analysis_dir, sample_name, "Output_WCX", group)
-        safe_copy_to_dir(os.path.join(wcx_src, f"{sample_name}.wcx.{group}_aberrations.bed"),
-                  os.path.join(output_dir, sample_name, "Output_WCX"))
-        safe_copy(os.path.join(wcx_src, f"{sample_name}.wcx.{group}.plots/genome_wide.png"),
-                  os.path.join(output_dir, sample_name, "Output_WCX", f"{sample_name}.wcx.{group}.png"))
+            if os.path.isdir(src_path):
+                # 디렉토리 복사 시, rename을 디렉토리명으로 사용
+                shutil.copytree(src_path, dst_path, dirs_exist_ok=True)
+                logger.info(f"Dir copied: {src_path} → {dst_path}")
+            else:
+                shutil.copy2(src_path, dst_path)
+                logger.info(f"File copied: {src_path} → {dst_path}")
 
-        # EZD
-        ezd_src = os.path.join(analysis_dir, sample_name, "Output_EZD", group)
-        safe_copy_to_dir(os.path.join(ezd_src, f"{group}_EZD_grid.png"), os.path.join(output_dir, sample_name, "Output_EZD"))
+def copy_data_to_output(analysis_dir: str,
+                            output_dir:   str,
+                            sample:       str,
+                            groups:       list[str],
+                            rules:        dict = None) -> None:
+    if rules is None:
+        rules = COPY_RULES
 
-        # PRIZM
-        prizm_src = os.path.join(analysis_dir, sample_name, "Output_PRIZM", group)
-        safe_copy_to_dir(os.path.join(prizm_src, f"{sample_name}_{group}_chromosome_line.png"),
-                  os.path.join(output_dir, sample_name, "Output_PRIZM"))
-        safe_copy_to_dir(os.path.join(prizm_src, f"{sample_name}_{group}_10mb_line.png"),
-                  os.path.join(output_dir, sample_name, "Output_PRIZM"))
+    # 그룹 무관 룰
+    for src_rel, cfg in rules.items():
+        if "{group}" not in src_rel:
+            mapping = {"sample": sample}
+            _process_rule(analysis_dir, output_dir, sample, src_rel, cfg, mapping)
 
-    # QC
-    qc_src = os.path.join(analysis_dir, sample_name, "Output_QC")
+    # 그룹별 룰
+    for group in groups:
+        for src_rel, cfg in rules.items():
+            if "{group}" in src_rel:
+                mapping = {"sample": sample, "group": group}
+                _process_rule(analysis_dir, output_dir, sample, src_rel, cfg, mapping)
 
-    copy_all_files(os.path.join(qc_src), os.path.join(output_dir, sample_name, "Output_QC"))
-
-    log_and_print(f"Copied final outputs for sample {sample_name} to output directory.")
     return True
 
 # Progress Tracking functions
@@ -2747,6 +2742,7 @@ def copy_all_files(src_dir, dst_dir):
         log_and_print(f"Failed to copy directory {src_dir} to {dst_dir}: {e}", "ERROR")
         return False
 
+# Deprecated
 def copy_outputs_to_final_dir(sample_name, analysis_dir, output_dir, group_list=None, force_copy=False):
     """
     Copy specific output files to final directory with marker-based optimization
@@ -2924,161 +2920,6 @@ def copy_outputs_to_final_dir(sample_name, analysis_dir, output_dir, group_list=
 
     except Exception as e:
         logger.error(f"Copy operation failed for {sample_name}: {e}")
-
-        # Remove incomplete marker if exists
-        if os.path.exists(marker_path):
-            try:
-                os.remove(marker_path)
-            except:
-                pass
-
-        return False
-
-def copy_outputs_to_final_dir_old(sample_name, analysis_dir, output_dir, group_list=None, force_copy=False):
-    """
-    Copy specific output files to final directory with marker-based optimization
-
-    Args:
-        sample_name: Sample identifier
-        analysis_dir: Source analysis directory
-        output_dir: Destination output directory
-        group_list: List of groups to process (default: ['orig', 'fetus', 'mom'])
-        force_copy: Force copy even if marker exists
-    """
-
-    if group_list is None:
-        group_list = ['orig', 'fetus', 'mom']
-
-    dest_dir = os.path.join(output_dir, sample_name)
-    marker_path = os.path.join(dest_dir, "copied.marker")
-
-    # Calculate current source hash for specific files only
-    current_hash = get_source_files_hash(analysis_dir, sample_name, group_list)
-    if current_hash is None:
-        log_and_print(f"Failed to calculate hash for source files: {sample_name}", "ERROR")
-        return False
-
-    # Check marker if not forcing copy
-    if not force_copy and check_copy_marker(marker_path, current_hash):
-        log_and_print(f"Copy skipped for {sample_name} - already up to date")
-        return True
-
-    log_and_print(f"Starting selective copy operation for {sample_name}")
-
-    try:
-        # Create destination directory
-        os.makedirs(dest_dir, exist_ok=True)
-
-        # Remove existing marker during copy
-        if os.path.exists(marker_path):
-            os.remove(marker_path)
-
-        # Track copy statistics
-        copy_stats = {
-            "files_copied": 0,
-            "files_failed": 0,
-            "total_size": 0
-        }
-
-        # Copy files for each group
-        for group in group_list:
-            log_and_print(f"Processing group: {group}")
-
-            # WC files
-            wc_src = os.path.join(analysis_dir, sample_name, "Output_WC", group)
-            wc_files = [
-                (os.path.join(wc_src, f"{sample_name}.wc.{group}.report.txt"),
-                 os.path.join(output_dir, sample_name, "Output_WC")),
-                (os.path.join(wc_src, f"{sample_name}.wc.{group}.png"),
-                 os.path.join(output_dir, sample_name, "Output_WC"))
-            ]
-
-            for src, dst_dir in wc_files:
-                if safe_copy_to_dir(src, dst_dir):
-                    copy_stats["files_copied"] += 1
-                    if os.path.exists(src):
-                        copy_stats["total_size"] += os.path.getsize(src)
-                else:
-                    copy_stats["files_failed"] += 1
-
-            # WCX files
-            wcx_src = os.path.join(analysis_dir, sample_name, "Output_WCX", group)
-
-            # Copy aberrations.bed file
-            if safe_copy_to_dir(os.path.join(wcx_src, f"{sample_name}.wcx.{group}_aberrations.bed"),
-                              os.path.join(output_dir, sample_name, "Output_WCX")):
-                copy_stats["files_copied"] += 1
-                src_file = os.path.join(wcx_src, f"{sample_name}.wcx.{group}_aberrations.bed")
-                if os.path.exists(src_file):
-                    copy_stats["total_size"] += os.path.getsize(src_file)
-            else:
-                copy_stats["files_failed"] += 1
-
-            # Copy genome_wide.png with rename
-            if safe_copy(os.path.join(wcx_src, f"{sample_name}.wcx.{group}.plots", "genome_wide.png"),
-                        os.path.join(output_dir, sample_name, "Output_WCX", f"{sample_name}.wcx.{group}.png")):
-                copy_stats["files_copied"] += 1
-                src_file = os.path.join(wcx_src, f"{sample_name}.wcx.{group}.plots", "genome_wide.png")
-                if os.path.exists(src_file):
-                    copy_stats["total_size"] += os.path.getsize(src_file)
-            else:
-                copy_stats["files_failed"] += 1
-
-            # EZD files
-            ezd_src = os.path.join(analysis_dir, sample_name, "Output_EZD", group)
-            if safe_copy_to_dir(os.path.join(ezd_src, f"{group}_EZD_grid.png"),
-                              os.path.join(output_dir, sample_name, "Output_EZD")):
-                copy_stats["files_copied"] += 1
-                src_file = os.path.join(ezd_src, f"{group}_EZD_grid.png")
-                if os.path.exists(src_file):
-                    copy_stats["total_size"] += os.path.getsize(src_file)
-            else:
-                copy_stats["files_failed"] += 1
-
-            # PRIZM files
-            prizm_src = os.path.join(analysis_dir, sample_name, "Output_PRIZM", group)
-            prizm_files = [
-                (os.path.join(prizm_src, f"{sample_name}_{group}_chromosome_line.png"),
-                 os.path.join(output_dir, sample_name, "Output_PRIZM")),
-                (os.path.join(prizm_src, f"{sample_name}_{group}_10mb_line.png"),
-                 os.path.join(output_dir, sample_name, "Output_PRIZM"))
-            ]
-
-            for src, dst_dir in prizm_files:
-                if safe_copy_to_dir(src, dst_dir):
-                    copy_stats["files_copied"] += 1
-                    if os.path.exists(src):
-                        copy_stats["total_size"] += os.path.getsize(src)
-                else:
-                    copy_stats["files_failed"] += 1
-
-        # Copy entire QC directory
-        log_and_print("Processing QC directory")
-        qc_src = os.path.join(analysis_dir, sample_name, "Output_QC")
-        if copy_all_files(qc_src, os.path.join(output_dir, sample_name, "Output_QC")):
-            # Count QC files
-            qc_dst = os.path.join(output_dir, sample_name, "Output_QC")
-            if os.path.exists(qc_dst):
-                for root, dirs, files in os.walk(qc_dst):
-                    copy_stats["files_copied"] += len(files)
-                    for file in files:
-                        filepath = os.path.join(root, file)
-                        if os.path.exists(filepath):
-                            copy_stats["total_size"] += os.path.getsize(filepath)
-        else:
-            copy_stats["files_failed"] += 1
-
-        log_and_print(f"Copy completed: {copy_stats['files_copied']} files successful, "
-                   f"{copy_stats['files_failed']} files failed, "
-                   f"{copy_stats['total_size'] / (1024*1024):.2f} MB total")
-
-        # Create marker file after successful copy
-        create_copy_marker(marker_path, current_hash, copy_stats)
-
-        return copy_stats["files_failed"] == 0  # Return True if no failures
-
-    except Exception as e:
-        log_and_print(f"Copy operation failed for {sample_name}: {e}", "ERROR")
 
         # Remove incomplete marker if exists
         if os.path.exists(marker_path):
@@ -3409,7 +3250,8 @@ def main():
                     wig_path=wig_path,
                     labcode=labcode,
                     analysis_dir=ANALYSIS_DIR,
-                    data_dir=DATA_DIR
+                    data_dir=DATA_DIR,
+                    config=config
                 )
 
                 progress.update_step(step_num, f"EZD {group.upper()}", "PASS")
@@ -3466,32 +3308,112 @@ def main():
     else:
         progress.update_step(14, "PRIZM Analysis", "SKIP", "already completed")
 
-    # Copy files to Output directory
-    success = copy_outputs_to_final_dir(sample_name, ANALYSIS_DIR, OUTPUT_DIR)
-    if success:
-        progress.update_step(15, "Copying files to Output directory", "PASS")
-    else:
-        progress.update_step(15, "Copying files to Output directory", "FAIL")
-        log_and_print(f"Failed to copy outputs for {sample_name}", "ERROR")
-        return False
-
-    # Previous style
-    #copy_outputs_to_final_dir(sample_name, ANALYSIS_DIR, OUTPUT_DIR)
 
     # Json Output
     json_result = os.path.join(output_dir, f"{sample_name}", f"{sample_name}.json")
     json_completed = os.path.exists(json_result)
+
+    wcx_chr_dict = {"orig":[], "fetus":[], "mom":[]}
+
     if not json_completed:
         log_and_print("=== Starting Json Generation ===")
         try:
-            json_output_path = build_nipt_json(ANALYSIS_DIR, OUTPUT_DIR, f"{DATA_DIR}/refs/{labcode}", sample_name, gender, age, VERSION, f"{bed_dir}/common", config)
-            log_and_print(f"[JSON] Output json file saved to: {json_output_path}")
-            progress.update_step(16, "Json Output Generation", "PASS")
+            tmp_json_output_path, tmp_wcx_chr_dict = build_nipt_json(ANALYSIS_DIR, OUTPUT_DIR, f"{DATA_DIR}/refs/{labcode}", sample_name, gender, age, VERSION, f"{bed_dir}/common", config)
+            log_and_print(tmp_wcx_chr_dict)
+            if tmp_json_output_path is not None and tmp_wcx_chr_dict is not None:
+                json_output_path = tmp_json_output_path
+                wcx_chr_dict      = tmp_wcx_chr_dict
+                log_and_print(f"[JSON] Output json file saved to: {json_output_path}")
+                progress.update_step(15, "Json Output Generation", "PASS")
+
+            else:
+                raise RuntimeError("build_nipt_json returned None")
         except Exception as e:
             log_and_print(f"[JSON] Failed to generate output json: {e}", "ERROR")
-            progress.update_step(16, "Json Output Generation", "FAIL")
+            progress.update_step(15, "Json Output Generation", "FAIL")
     else:
-        progress.update_step(16, "Json Output Generation", "SKIP", "already completed")
+        progress.update_step(15, "Json Output Generation", "SKIP", "already completed")
+
+    def make_wcx_copy_rules(wcx_chr_dict: dict[str, list[str]], sample: str) -> dict[str, dict]:
+        rules = {}
+        for group, chrs in wcx_chr_dict.items():
+            if not chrs:
+                # 이 그룹은 건너뜀
+                continue
+            # analysis_dir/sample/Output_WCX/{group}/{sample}.wcx.{group}.plots/chr{c}.png 만 복사
+            patterns = [
+                f"{sample}.wcx.{group}.plots/chr{c}.png"
+                for c in chrs
+            ]
+            # dest 역시 output_dir/sample/Output_WCX/chr_plots/{group}
+            rules[f"Output_WCX/{group}"] = {
+                "patterns": patterns,
+                "dest":     f"Output_WCX/chr_plots/{group}"
+            }
+        return rules
+
+    # src: 분석 결과 디렉토리(analysis_dir/sample_name/ + src), dest: output_dir/sample_name/ + dest
+    COPY_RULES = {
+
+        # Output_EZD
+        "Output_EZD/{group}": {
+            "patterns": ["{group}_EZD_grid.png"],
+            "dest": "Output_EZD"
+        },
+
+        # Output_PRIZM
+        "Output_PRIZM/{group}": {
+            "patterns": ["{sample}_{group}_*.png"],
+            "dest": "Output_PRIZM"
+        },
+
+        # Output_QC/*.qc.txt, *.qc.html -> 그대로 같은 위치로 복사
+        "Output_QC": {
+            "patterns": ["*_fastqc.html", "css", "images_qualimapReport", "raw_data_qualimapReport", "qualimapReport.html"],
+            "dest": "Output_QC"
+        },
+
+        # Output_WC
+        "Output_WC/{group}": {
+            "patterns": ["{sample}.wc.{group}_z.png", "{sample}.wc.{group}.report.txt"],
+            "dest": "Output_WC"
+        },
+
+        # Output_WCX
+        "Output_WCX/{group}": {
+            "patterns": ["{sample}.wcx.{group}_aberrations.bed"],
+            "dest": "Output_WCX"
+        },
+
+        # Output_WCX/<group>/<sample>.wcx.<group>.plots  ->  chr_plots/<group>/{same basename}
+        "Output_WCX/{group}/{sample}.wcx.{group}.plots": {
+            "patterns": ["genome_wide.png"],
+            "dest": "Output_WCX",
+            "rename": "{sample}.wcx.{group}.png"
+        }
+    }
+
+    COPY_RULES_WCX_PLOTS = make_wcx_copy_rules(wcx_chr_dict, sample_name)
+    logger.info(COPY_RULES_WCX_PLOTS)
+
+    COPY_RULES.update(COPY_RULES_WCX_PLOTS)
+    logger.info(COPY_RULES)
+
+    # Copy files to Output directory
+    success = copy_data_to_output(
+        analysis_dir=ANALYSIS_DIR,
+        output_dir=OUTPUT_DIR,
+        sample=sample_name,
+        groups=["orig", "fetus", "mom"],
+        rules=COPY_RULES
+    )
+
+    if success:
+        progress.update_step(16, "Copying files to Output directory", "PASS")
+    else:
+        progress.update_step(16, "Copying files to Output directory", "FAIL")
+        log_and_print(f"Failed to copy outputs for {sample_name}", "ERROR")
+        return False
 
     # HTML generation - 완전히 독립적으로 실행
     html_result = os.path.join(output_dir, f"{sample_name}", f"{sample_name}.html")

@@ -427,7 +427,7 @@ def generate_final_results_section(data):
         """리스트 값을 적절하게 포맷팅"""
         if isinstance(value, list):
             if not value:  # 빈 리스트
-                return "None Detected"
+                return "Not Detected"
             elif len(value) == 1:  # 단일 항목
                 return str(value[0])
             else:  # 여러 항목
@@ -438,24 +438,34 @@ def generate_final_results_section(data):
     
     def get_result_status_class(value, label):
         """결과 값에 따른 CSS 클래스 결정"""
+        # 1) 리스트일 때
         if isinstance(value, list):
-            if not value:  # 빈 리스트 = 검출되지 않음
+            if not value:
+                return "status-normal"   # 빈 리스트 → 정상
+            # 리스트에 실제 항목을 보고 정상/비정상 판단
+            normal_terms   = {'Low Risk', 'Normal', 'Not Detected'}
+            abnormal_terms = {'High Risk', 'Abnormal', 'Detected'}
+            # 비정상 용어가 하나라도 있으면 abnormal
+            if any(item in abnormal_terms for item in value):
+                return "status-abnormal"
+            # 모두 정상 용어라면 normal
+            if all(item in normal_terms for item in value):
                 return "status-normal"
-            else:  # 항목이 있음 = 검출됨
-                if 'Trisomy' in label or 'Microdeletion' in label:
-                    return "status-abnormal"
-        else:
-            # 기존 로직
-            if 'Result' in label:
-                if value in ['Low Risk', 'Normal', 'Not Detected', 'None Detected']:
-                    return "status-normal"
-                elif value in ['High Risk', 'Abnormal', 'Detected']:
-                    return "status-abnormal"
-            elif label == 'Sample Bias' and value == 'PASS':
-                return "status-pass"
-        
-        return ""
-    
+            # 그 외는 기본
+            return ""
+
+        # 2) 스칼라 값일 때 (기존 로직)
+        if 'Result' in label:
+            if value in ['Low Risk', 'Normal', 'Not Detected']:
+                return "status-normal"
+            if value in ['High Risk', 'Abnormal', 'Detected']:
+                return "status-abnormal"
+
+        if label.lower() == 'sample_bias' and value == 'PASS':
+            return "status-pass"
+
+        return "" 
+
     # 정보 항목들 - 정확한 JSON 키 이름 사용
     info_items = [
         ('Order ID', final_results.get('order_id', 'N/A')),
@@ -508,7 +518,7 @@ def generate_final_results_section_simple(data):
         """값을 적절하게 포맷팅"""
         if isinstance(value, list):
             if not value:
-                return "None Detected"
+                return "Not Detected"
             else:
                 return " | ".join(str(item) for item in value)
         else:
@@ -533,7 +543,7 @@ def generate_final_results_section_simple(data):
         if 'Result' in label:
             if isinstance(value, list) and len(value) > 0:
                 value_class = "status-abnormal"
-            elif formatted_value in ['None Detected', 'Low Risk', 'Normal']:
+            elif formatted_value in ['Not Detected', 'Low Risk', 'Normal']:
                 value_class = "status-normal"
         elif label == 'Sample Bias' and value == 'PASS':
             value_class = "status-pass"
@@ -577,7 +587,7 @@ def generate_final_results_section_table(data):
     def format_list_for_table(value):
         if isinstance(value, list):
             if not value:
-                return "None Detected", "status-normal"
+                return "Not Detected", "status-normal"
             else:
                 formatted = "<br>".join(f"• {item}" for item in value)
                 return formatted, "status-abnormal"
@@ -605,7 +615,7 @@ def generate_final_results_section_table(data):
             if isinstance(value, list) and len(value) > 0:
                 status_icon = "⚠️ Detected"
                 status_class = "status-abnormal"
-            elif formatted_value == "None Detected":
+            elif formatted_value == "Not Detected":
                 status_icon = "✅ Normal"
                 status_class = "status-normal"
         elif label == 'Sample Bias' and value == 'PASS':

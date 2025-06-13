@@ -35,7 +35,11 @@
         2504300004
         2504300006
 
-8. make_list_base.py
+8. make_fastq_dir.sh
+    : it doesn't need the sample_list.txt. put the target directory only
+    : bash make_fastq_dir.sh /home/ken/ken-nipt/fastq/250612_01
+
+9. make_list_base.py
     : make the sample sheet for nipt_v1.0 docker run
     <sample_sheet.tsv>
         SAMPLE_NAME	FQ1	FQ2	LAB
@@ -44,13 +48,13 @@
         2504300014	2504300014_S28_R1_001.fastq.gz	2504300014_S28_R2_001.fastq.gz	cordlife
         2504300015	2504300015_S23_R1_001.fastq.gz	2504300015_S23_R2_001.fastq.gz	cordlife
 
-9. make_list.py
+10. make_list.py
     : same as make_list_base.py but it adds "age" column with default value.
     
-10. move_fastq.sh
-    : Reading sample_name, fq1, fq2 from sample_list.csv, it create sample_name directory and move fastq files into it. This is very similar to "7. make_input_dir.sh"
+11. move_fastq.sh
+    : Reading sample_name, fq1, fq2 from sample_list.csv, it create sample_name directory and move fastq files into it. This is very similar to "7. make_input_dir.sh". But, it needs the sample_list.tsv which containing Sample_name, Fq1, Fq2 columns
 
-11. resource_logger.sh
+12. resource_logger.sh
     : Monitor resources
     : bash resource_logger.sh 10 rsc_log &
 
@@ -58,10 +62,15 @@
         2025-06-08 16:08:19	0	1538	201473	0.8
         2025-06-08 16:08:30	0	1537	201473	0.8
 
-12. build_docker.sh
+13. build_docker.sh
     : build docker image
 
     build_docker.sh -n nipt_docker_v1.0 -t latest
+
+14. make_sample_sheet.py 
+    : for Cordlife, it makes the samplesheet.tsv fit for nipt_batch_dev.py
+    
+    python3 make_sample_sheet.py ~/ken-nipt/fastq/250612_01 --output ~/ken-nipt/fastq/250612_01/250612_01.samplesheet.tsv --sample_info ~/ken-nipt/fastq/250612_01/'Database 250612_01 - for GC.xlsx'
 
 # ---------------------------------------#
 # Sample Run script

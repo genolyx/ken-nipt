@@ -340,7 +340,7 @@ def init_sca_detector(data_dir, labcode):
     return sca_detector
 
 
-def run_sca_detection(ezd_df, config_type='orig'):
+def run_sca_detection(ezd_df, config, config_type='orig'):
 
     if sca_detector is None:
         logger.error("SCA Detector has not been initialized")
@@ -413,7 +413,7 @@ def run_sca_detection(ezd_df, config_type='orig'):
         return {}
 
 
-def run_ezd_group(sample_name: str, group: str, wig_path: str, labcode: str, analysis_dir: str, data_dir: str):
+def run_ezd_group(sample_name: str, group: str, wig_path: str, labcode: str, analysis_dir: str, data_dir: str, config):
     """
     Parameters:
     - sample_name: 샘플 이름
@@ -464,7 +464,7 @@ def run_ezd_group(sample_name: str, group: str, wig_path: str, labcode: str, ana
         decision_df = run_decision(ezd_df, threshold_path)
 
         # 2.1 SCA Decision
-        sca_results = run_sca_detection(ezd_df, group)
+        sca_results = run_sca_detection(ezd_df, config, group)
         decision_df_extended = add_sca_to_decision_df(decision_df, sca_results, group)
 
         # 3. Save results
@@ -480,10 +480,12 @@ def run_ezd_group(sample_name: str, group: str, wig_path: str, labcode: str, ana
         output = join(output_dir, f'Trisomy_detect_result_{group}_with_SCA.tsv')
         decision_df_rounded.to_csv(decision_output, sep='\t', index=False)
 
+        dpi = config.get('EZD', {}).get('resolution_dpi', 200)
+
         # 4. Plotting
         try:
             plot_chr_scatter_grid(chr_table_dir, sample_name, threshold_path,
-                                join(output_dir, f'{group}_EZD_grid.png'), group, output_dir)
+                                join(output_dir, f'{group}_EZD_grid.png'), group, output_dir, dpi)
             #plot_ezd_interactive(ezd_df, join(output_dir, f'{group}_EZD_plot.html'))
         except Exception as plot_error:
             logger.warning(f"Plotting failed: {plot_error}")
@@ -693,7 +695,7 @@ def add_sca_lines_to_chry_plot(ax, config_type='orig'):
     except Exception as e:
         logger.error(f"chrY SCA 라인 추가 오류: {e}")
 
-def plot_chr_scatter_grid(chr_table_dir, sample_name, threshold_path, output_path, group, test_data_dir=None):
+def plot_chr_scatter_grid(chr_table_dir, sample_name, threshold_path, output_path, group, test_data_dir=None, dpi=200):
     """
     염색체별 UAR vs Z-score scatter plot grid 생성
     
@@ -1130,7 +1132,7 @@ def plot_chr_scatter_grid(chr_table_dir, sample_name, threshold_path, output_pat
         
         # 레이아웃 조정 및 저장
         plt.tight_layout(rect=[0, 0, 1, 0.92])
-        plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+        plt.savefig(output_path, dpi=dpi, bbox_inches='tight', facecolor='white')
         plt.close()
         
         logger.info(f"  Scatter grid plot saved successfully!")
@@ -1150,7 +1152,7 @@ def plot_chr_scatter_grid(chr_table_dir, sample_name, threshold_path, output_pat
             ax.axis('off')
             
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
+            plt.savefig(output_path, dpi=dpi, bbox_inches='tight', facecolor='white')
             plt.close()
             logger.info(f"  Error plot saved to: {output_path}")
         except:

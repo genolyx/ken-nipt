@@ -55,6 +55,9 @@ fi
 
 # 마커 파일 확인
 PIPELINE_MARKER="$HOST_ANALYSIS_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.pipeline_completed.marker"
+JSON_OUTPUT="$HOST_OUTPUT_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.json"
+HTML_OUTPUT="$HOST_OUTPUT_DIR//${SAMPLE_NAME}_report.html"
+
 if [[ "$FORCE_EXECUTION" = false && "$CLEAN_FORCE" = false && -f "$PIPELINE_MARKER" ]]; then
     echo "=== SKIPPING: Already completed. Use -f to force ==="
     exit 0
@@ -79,13 +82,16 @@ if [ "$CLEAN_FORCE" = true ]; then
       "$BASE/Output_WCX"/*/*/*
 
     # 최종 JSON (output_dir) 삭제
-    rm -f "$HOST_OUTPUT_DIR/${SAMPLE_NAME}.json"
+    rm -f "$JSON_OUTPUT"
+    rm -f "$HTML_OUTPUT"
 fi
 
 if [ "$FORCE_EXECUTION" = true ]; then
     echo "=== FORCE MODE: Removing previous marker and container ==="
     [ -f "$PIPELINE_MARKER" ] && rm -f "$PIPELINE_MARKER"
     docker rm -f "$SAMPLE_NAME" 2>/dev/null || true
+    rm -f "$JSON_OUTPUT"
+    rm -f "$HTML_OUTPUT"
 fi
 
 # 디렉토리 생성

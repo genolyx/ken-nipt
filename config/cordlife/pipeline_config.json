@@ -1,5 +1,5 @@
 {
-    "QC": {
+  "QC": {
     "max_fq_size": 30000000,
     "downsample_size": 7500000,
     "bwa_threads": 16,
@@ -60,10 +60,12 @@
     "cytoband": "/Work/NIPT/data/bed/common/cytoBand.txt"
   },
   "PRIZM": {
-    "qc_cutoff": 3.0
+    "qc_cutoff": 3.0,
+    "resolution_dpi": 200
   },
   "EZD": {
-    "qc_cutoff": 3.0
+    "qc_cutoff": 3.0,
+    "resolution_dpi": 200
   },
   "MD_Target_8": {
     "bed": "TargetDB_md8.bed",
