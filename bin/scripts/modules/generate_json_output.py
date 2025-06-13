@@ -1115,7 +1115,7 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
 # ==============================================================
 # Main JSON Building Function
 # ==============================================================
-def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender, age, version, target_bed_dir):
+def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender, age, version, target_bed_dir, config):
     """Build complete NIPT JSON structure matching output.json"""
     
     # Initialize output structure
@@ -1361,6 +1361,24 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
         # Analysis QC
         analysis_qc = {}
 
+        # 250613 : To get orig_biqc result
+        prizm_qc_file = f"{analysis_dir}/{sample_name}/Output_PRIZM/orig/{sample_name}.of_orig.prizm.qc.txt"
+        logger.info(f"Looking for PRIZM QC file: {prizm_qc_file}")
+
+        qc_config = config.get('QC', {})
+        orig_biqc = qc_config.get('orig_biqc', 4.0)
+
+        try:
+            with open(prizm_qc_file, 'r') as qc_f:
+                parts = qc_f.read().strip().split()
+                sample_bias_value = float(parts[0])
+                sample_bias_status = parts[1]
+
+        except Exception as e:
+            logger.warning(f"Failed to read sample_bias_qc from {prizm_qc_file}: {e}")
+            sample_bias_value = None
+            sample_bias_status = "FAIL"
+
         if final_results:
             try:
                 analysis_qc = {
@@ -1384,9 +1402,9 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
                         "threshold": "<2"
                     },
                     "sample_bias_qc": {
-                        "value": final_results['sample_bias_qc'],
-                        "status": "PASS",
-                        "threshold": "PASS"
+                        "value": sample_bias_value,
+                        "status": sample_bias_status,
+                        "threshold": f"<{orig_biqc}"
                     }
                 }
 

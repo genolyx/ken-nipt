@@ -17,8 +17,7 @@
     "GC_content_max": 55.0,
     "YFF": 4.0,
     "seqFF": 4.0,
-    "FFGap_1": 2.5,
-    "FFGap_2": 3.0
+    "FF_Ratio": 2.5
   },
   "FF_Gender_Config": {
     "fragment_size_cutoff": 160,

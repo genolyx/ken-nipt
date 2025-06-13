@@ -259,8 +259,7 @@ def get_qc_thresholds(config):
         'GC_content_max': qc_config.get('GC_content_max', 55.0),
         'YFF': qc_config.get('YFF', 4.0),
         'seqFF': qc_config.get('seqFF', 4.0),
-        'FFGap_1': qc_config.get('FFGap_1', 2.5),
-        'FFGap_2': qc_config.get('FFGap_2', 3.0)
+        'FF_Ratio': qc_config.get('FF_Ratio', 2.5)
     }
 
 def qc_filter(sample_name):
@@ -3485,7 +3484,7 @@ def main():
     if not json_completed:
         log_and_print("=== Starting Json Generation ===")
         try:
-            json_output_path = build_nipt_json(ANALYSIS_DIR, OUTPUT_DIR, f"{DATA_DIR}/refs/{labcode}", sample_name, gender, age, VERSION, f"{bed_dir}/common")
+            json_output_path = build_nipt_json(ANALYSIS_DIR, OUTPUT_DIR, f"{DATA_DIR}/refs/{labcode}", sample_name, gender, age, VERSION, f"{bed_dir}/common", config)
             log_and_print(f"[JSON] Output json file saved to: {json_output_path}")
             progress.update_step(16, "Json Output Generation", "PASS")
         except Exception as e:
