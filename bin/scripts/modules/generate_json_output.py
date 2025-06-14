@@ -1472,34 +1472,41 @@ def build_nipt_json(analysis_dir, output_dir, ref_dir, sample_name, fetus_gender
     
     # 7. Add QC section outside NIPT (matching output.json structure)
     output["quality_control"] = output[APPID]["quality_control"]
-    
+
     # 8. Build S3 upload files
+    # I don't need to put this data. Just make tar file
+    '''
     output["S3_upload_files"] = {
         #"qualimap_report_button": f"Output_QC/{sample_name}.Qualimap.zip",
+        "fastqc_r1_report_button": f"Output_QC/{fastqc_r1_report}",
+        "fastqc_r2_report_button": f"Output_QC/{fastqc_r2_report}",
         "qualimap_report_button": f"Output_QC/qualimapReport.html",
-        "qualimap_report_button": f"Output_QC/qualimapReport.html",
+
         "original_ezd_image": f"Output_EZD/orig_EZD_grid.png",
         "original_prizm_chromosome_image": f"Output_PRIZM/{sample_name}_orig_chromosome_line.png",
         "original_prizm_10mb_image": f"Output_PRIZM/{sample_name}_orig_10mb_line.png",
         "original_wisecondor_image": f"Output_WC/{sample_name}.wc.orig_z.png",
         "original_wisecondor_txt": f"Output_WC/{sample_name}.wc.orig.report.txt",
         "original_wisecondorx_image": f"Output_WCX/{sample_name}.wcx.orig.png",
-        "original_wisecondorx_txt": f"Output_WCX/{sample_name}.wc.orig_aberrations.bed",
+        "original_wisecondorx_txt": f"Output_WCX/{sample_name}.wcx.orig_aberrations.bed",
+
         "fetus_ezd_image": f"Output_EZD/fetus_EZD_grid.png",
         "fetus_prizm_chromosome_image": f"Output_PRIZM/{sample_name}_fetus_chromosome_line.png",
         "fetus_prizm_10mb_image": f"Output_PRIZM/{sample_name}_fetus_10mb_line.png",
         "fetus_wisecondor_image": f"Output_WC/{sample_name}.wc.fetus_z.png",
         "fetus_wisecondor_txt": f"Output_WC/{sample_name}.wc.fetus.report.txt",
         "fetus_wisecondorx_image": f"Output_WCX/{sample_name}.wcx.fetus.png",
-        "fetus_wisecondorx_txt": f"Output_WCX/{sample_name}.wc.fetus_aberrations.bed",
+        "fetus_wisecondorx_txt": f"Output_WCX/{sample_name}.wcx.fetus_aberrations.bed",
+
         "mom_ezd_image": f"Output_EZD/mom_EZD_grid.png",
         "mom_prizm_chromosome_image": f"Output_PRIZM/{sample_name}_mom_chromosome_line.png",
         "mom_prizm_10mb_image": f"Output_PRIZM/{sample_name}_mom_10mb_line.png",
         "mom_wisecondor_image": f"Output_WC/{sample_name}.wc.mom_z.png",
         "mom_wisecondor_txt": f"Output_WC/{sample_name}.wc.mom.report.txt",
         "mom_wisecondorx_image": f"Output_WCX/{sample_name}.wcx.mom.png",
-        "mom_wisecondorx_txt": f"Output_WCX/{sample_name}.wc.mom_aberrations.bed",
+        "mom_wisecondorx_txt": f"Output_WCX/{sample_name}.wcx.mom_aberrations.bed",
     }
+    '''
 
     json_output_path = f"{output_dir}/{sample_name}/{sample_name}.json"
 

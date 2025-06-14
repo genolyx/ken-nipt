@@ -1,8 +1,9 @@
 #!/bin/bash
+set -euo pipefail
 
 # 스크립트 사용법 출력 함수
 usage() {
-    echo "Usage: $0 -s <sample_name> -1 <fastq_r1> -2 <fastq_r2> -l <labcode> -a <age> -root <root_directory> -work <work_directory> [--no-log] [--detached] [-f] [--algorithm_only] [-h]"
+    echo "Usage: $0 -s <sample_name> -1 <fastq_r1> -2 <fastq_r2> -l <labcode> -a <age> -root <root_directory> -work <work_directory> [--no-log] [--detached] [-f] [-rb] [-cf] [-ao] [-h]"
     exit 1
 }
 
@@ -10,6 +11,11 @@ usage() {
 ENABLE_LOGGING=true
 DETACHED_MODE=false
 FORCE_EXECUTION=false
+CLEAN_FORCE=false
+ALGORITHM_ONLY=false
+REMOVE_BAMS=false
+FASTQ_R1=""
+FASTQ_R2=""
 
 # 인자 파싱
 while [[ $# -gt 0 ]]; do
@@ -26,15 +32,32 @@ while [[ $# -gt 0 ]]; do
         -f|--force) FORCE_EXECUTION=true; shift ;;
         -cf|--clean_force) CLEAN_FORCE=true; shift ;;
         -ao|--algorithm_only) ALGORITHM_ONLY=true; shift ;;
+        -rb|--remove_bams) REMOVE_BAMS=true; shift ;;
         -h) usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
 done
 
 # 필수 인자 확인
-if [[ -z "$SAMPLE_NAME" || -z "$FASTQ_R1" || -z "$FASTQ_R2" || -z "$LABCODE" || -z "$AGE" || -z "$ROOT_DIR" || -z "$WORK_DIR" ]]; then
-    echo "Error: Missing required arguments" >&2
+#if [[ -z "$SAMPLE_NAME" || -z "$FASTQ_R1" || -z "$FASTQ_R2" || -z "$LABCODE" || -z "$AGE" || -z "$ROOT_DIR" || -z "$WORK_DIR" ]]; then
+#    echo "Error: Missing required arguments" >&2
+#    usage
+#fi
+
+# 필수 인자 기본 확인 (FASTQ는 AO 모드에선 제외)
+if [[ -z "${SAMPLE_NAME-}" || -z "${LABCODE-}" || -z "${AGE-}" || -z "${ROOT_DIR-}" || -z "${WORK_DIR-}" ]]; then
+    echo "[ERROR] Missing required arguments." >&2
     usage
+fi
+
+# full run 모드에서만 FASTQ 체크
+if ! $ALGORITHM_ONLY; then
+    if [[ -z "$FASTQ_R1" || -z "$FASTQ_R2" ]]; then
+        echo "[ERROR] In full-run mode, -1 FASTQ_R1 and -2 FASTQ_R2 are required." >&2
+        usage
+    fi
+else
+    echo "[INFO] Algorithm-only mode (-ao): skipping FASTQ input check"
 fi
 
 # 디렉토리 설정
@@ -57,6 +80,7 @@ fi
 PIPELINE_MARKER="$HOST_ANALYSIS_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.pipeline_completed.marker"
 JSON_OUTPUT="$HOST_OUTPUT_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.json"
 HTML_OUTPUT="$HOST_OUTPUT_DIR//${SAMPLE_NAME}_report.html"
+TAR_OUTPUT="$HOST_OUTPUT_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.output.tar"
 
 if [[ "$FORCE_EXECUTION" = false && "$CLEAN_FORCE" = false && -f "$PIPELINE_MARKER" ]]; then
     echo "=== SKIPPING: Already completed. Use -f to force ==="
@@ -73,17 +97,25 @@ if [ "$CLEAN_FORCE" = true ]; then
     docker rm -f "$SAMPLE_NAME" 2>/dev/null || true
 
     # 분석 결과 디렉토리 내 clean 대상
-    BASE="$HOST_ANALYSIS_DIR/$SAMPLE_NAME"
+    ANALYSIS_BASE="$HOST_ANALYSIS_DIR/$SAMPLE_NAME"
     rm -rf \
-      "$BASE/Output_EZD"/*/* \
-      "$BASE/Output_PRIZM"/*/* \
-      "$BASE/Output_WC"/*/* \
-      "$BASE/Output_WCX"/*/* \
-      "$BASE/Output_WCX"/*/*/*
+        "$ANALYSIS_BASE/Output_EZD"/* \
+        "$ANALYSIS_BASE/Output_PRIZM"/* \
+        "$ANALYSIS_BASE/Output_WC"/* \
+        "$ANALYSIS_BASE/Output_WCX"/*
+
+    OUTPUT_BASE="$HOST_OUTPUT_DIR/$SAMPLE_NAME"
+    rm -rf \
+        "$OUTPUT_BASE/Output_EZD"/* \
+        "$OUTPUT_BASE/Output_PRIZM"/* \
+        "$OUTPUT_BASE/Output_QC"/* \
+        "$OUTPUT_BASE/Output_WC"/* \
+        "$OUTPUT_BASE/Output_WCX"/* 
 
     # 최종 JSON (output_dir) 삭제
     rm -f "$JSON_OUTPUT"
     rm -f "$HTML_OUTPUT"
+    rm -f "$TAR_OUTPUT"
 fi
 
 if [ "$FORCE_EXECUTION" = true ]; then
@@ -92,21 +124,36 @@ if [ "$FORCE_EXECUTION" = true ]; then
     docker rm -f "$SAMPLE_NAME" 2>/dev/null || true
     rm -f "$JSON_OUTPUT"
     rm -f "$HTML_OUTPUT"
+    rm -f "$TAR_OUTPUT"
 fi
 
 # 디렉토리 생성
 mkdir -p "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR/bed" "$HOST_OUTPUT_DIR"
 chown -R ken:ken "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR" "$HOST_OUTPUT_DIR"
 
-# FASTQ 확인
-if [[ ! -f "$HOST_FASTQ_DIR/$SAMPLE_NAME/$FASTQ_R1" || ! -f "$HOST_FASTQ_DIR/$SAMPLE_NAME/$FASTQ_R2" ]]; then
-    echo "FASTQ 파일이 존재하지 않습니다: $FASTQ_R1 또는 $FASTQ_R2" >&2
-    exit 1
+if ! $ALGORITHM_ONLY; then
+    if [[ -z "$FASTQ_R1" || -z "$FASTQ_R2" ]]; then
+        echo "[ERROR] In full-run mode, -1 FASTQ_R1 and -2 FASTQ_R2 are required." >&2
+        usage
+    fi
+else
+    echo "[INFO] Algorithm-only mode: skipping FASTQ input check"
+    # algorithm-only 모드면 fake FASTQ 이름을 sample_name 기반으로 설정
+    FASTQ_R1="${SAMPLE_NAME}_R1.fastq.gz"
+    FASTQ_R2="${SAMPLE_NAME}_R2.fastq.gz"
 fi
 
 # Docker 인자 설정
-OPTIONAL_ARGS=()
-[ "$ALGORITHM_ONLY" = true ] && OPTIONAL_ARGS+=("--algorithm_only")
+#OPTIONAL_ARGS=()
+#[ "$ALGORITHM_ONLY" = true ] && OPTIONAL_ARGS+=("--algorithm_only")
+
+DOCKER_ARGS=(--sample_name "$SAMPLE_NAME" --labcode "$LABCODE" --age "$AGE")
+if ! $ALGORITHM_ONLY; then
+    DOCKER_ARGS+=(--fastq_r1 "$FASTQ_R1" --fastq_r2 "$FASTQ_R2")
+else
+    # algorithm-only 모드에도 기본값으로 넘겨주기
+    DOCKER_ARGS+=(--fastq_r1 "$FASTQ_R1" --fastq_r2 "$FASTQ_R2" --algorithm_only)
+fi
 
 # Docker 실행
 echo "=== Launching Docker container ==="
@@ -142,12 +189,13 @@ CONTAINER_ID=$(docker run -d \
     -e ANALYSIS_DIR="/Work/NIPT/analysis" \
     -e OUTPUT_DIR="/Work/NIPT/output" \
     nipt_docker_v1.0 \
-    --sample_name "$SAMPLE_NAME" \
-    --fastq_r1 "$FASTQ_R1" \
-    --fastq_r2 "$FASTQ_R2" \
-    --labcode "$LABCODE" \
-    --age "$AGE" \
-    "${OPTIONAL_ARGS[@]}"
+    "${DOCKER_ARGS[@]}"
+    #--sample_name "$SAMPLE_NAME" \
+    #--fastq_r1 "$FASTQ_R1" \
+    #--fastq_r2 "$FASTQ_R2" \
+    #--labcode "$LABCODE" \
+    #--age "$AGE" \
+    #"${OPTIONAL_ARGS[@]}"
 )
 
 DOCKER_EXIT_CODE=$?
@@ -172,9 +220,17 @@ else
     PROGRESS_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}_progress.txt"
     ANALYSIS_LOG_FILE="$HOST_ANALYSIS_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}_analysis.log"
 
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
     if [ $CONTAINER_EXIT_CODE -eq 0 ]; then
         if [ -f "$COMPLETED_FILE" ]; then
             echo "Pipeline completed successfully: $SAMPLE_NAME"
+            # BAM 정리 모드가 켜져 있으면 cleanup_bam.sh 호출
+            if [ "$REMOVE_BAMS" = true ]; then
+                echo "=== REMOVE_BAMS: cleaning up BAM files ==="
+                # cleanup_bam.sh 위치에 따라 경로 조정
+                bash "$SCRIPT_DIR/cleanup_bam.sh" "$HOST_ANALYSIS_DIR" "$SAMPLE_NAME" "true"
+            fi
         else
             echo "Pipeline finished, but no completion marker found"
             echo "Possible error in internal pipeline. Marking as failed."

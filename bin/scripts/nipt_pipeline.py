@@ -33,6 +33,7 @@ import glob
 import hashlib
 import pysam
 import inspect
+import tarfile
 from pathlib import Path
 
 sys.path.append('/Work/NIPT/bin')
@@ -2415,6 +2416,31 @@ def copy_data_to_output(analysis_dir: str,
 
     return True
 
+
+def create_sample_tar(output_dir: str, sample_name: str) -> str:
+    """
+    output_dir/sample_name 디렉토리 전체를
+    sample_name.output.tar 파일로 묶어서 저장합니다.
+    
+    :param output_dir: 최상위 Output 디렉토리
+    :param sample_name: 샘플명 (그리고 tar 파일명)
+    :return: 생성된 tar 파일의 절대 경로
+    """
+    sample_dir = os.path.join(output_dir, sample_name)
+    tar_path   = os.path.join(sample_dir, f"{sample_name}.output.tar")
+
+    # 이미 동일한 tar가 있으면 덮어쓰기
+    if os.path.exists(tar_path):
+        os.remove(tar_path)
+        logger.info(f"Existing tar removed: {tar_path}")
+
+    # tar 생성
+    with tarfile.open(tar_path, "w") as tar:
+        # sample_dir 내부 모든 파일/폴더를 arcname="."로 묶어줌
+        tar.add(sample_dir, arcname=".")
+    logger.info(f"Created tar: {tar_path}")
+    return tar_path
+
 # Progress Tracking functions
 def run_pipeline_step(step_num, step_name, step_function, progress, *args):
     """공통 단계 실행 패턴"""
@@ -3019,12 +3045,15 @@ def main():
         progress.update_step(1, "Algorithm only mode : SKIP 1~7", "SKIP")
         force_run = True
 
+    # I think following lines are not necessary
+    '''
     fq1 = os.path.join(fastq_dir, sample_name, fastq_r1)
     fq2 = os.path.join(fastq_dir, sample_name, fastq_r2)
     if not os.path.isfile(fq1) or not os.path.isfile(fq2):
         log_and_print("FASTQ files not found after symbolic linking.", 'ERROR')
         return False
     log_and_print(f"FASTQ files: {fastq_r1}, {fastq_r2}")
+    '''
 
     final_marker = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.pipeline_completed.marker"
 
@@ -3409,7 +3438,9 @@ def main():
     )
 
     if success:
+        tar_file = create_sample_tar(OUTPUT_DIR, sample_name)
         progress.update_step(16, "Copying files to Output directory", "PASS")
+        log_and_print(f"[TAR] Created: {tar_file}")
     else:
         progress.update_step(16, "Copying files to Output directory", "FAIL")
         log_and_print(f"Failed to copy outputs for {sample_name}", "ERROR")
