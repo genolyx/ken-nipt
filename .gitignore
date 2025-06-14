@@ -12,6 +12,9 @@
 /src/rsc_log/
 /src/test/
 
+/src/util/36mer
+/src/util/100mer
+
 *.swp
 *.fasta
 bin/.*
