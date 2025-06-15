@@ -1,0 +1,51 @@
+{
+"python.languageServer": "Pylance",
+"[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "editor.insertSpaces": "explicit"
+    }
+},
+"files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+},
+"github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+    "text": "Use conventional commit message format."
+    },
+    {
+    "text": "Prefix the message with one of: feat, fix, chore, refactor, style, test, docs."
+    },
+    {
+    "text": "Use Conventional Commits format."
+    },
+    {
+    "text": "Use a colon and a space after the prefix, e.g., feat: add login page."
+    },
+    {
+    "text": "Use present tense and keep it concise."
+    },
+    {
+    "text": "Do not include the issue number unless explicitly mentioned."
+    },
+    {
+    "text": "Write message in one sentences."
+    }
+],
+"python.analysis.autoImportCompletions": true,
+"python.analysis.autoFormatStrings": true,
+"python.analysis.autoSplitStrings": true,
+"python.analysis.autoSearchPaths": true,
+"python.analysis.autoIndent": true,
+"python.analysis.completeFunctionParens": true,
+}
