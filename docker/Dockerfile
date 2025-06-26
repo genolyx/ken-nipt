@@ -254,6 +254,10 @@ COPY bin/scripts/modules/gender_detector.py /Work/NIPT/bin/
 COPY bin/scripts/nipt_pipeline.py /Work/NIPT/bin/
 RUN chmod +x /Work/NIPT/bin/nipt_pipeline.py
 
+# Generate Reference for WC family
+COPY bin/scripts/generate_wcfamily_reference.sh /Work/NIPT/bin/
+RUN chmod +x /Work/NIPT/bin/generate_wcfamily_reference.sh
+
 # Set environment variables
 ENV SRC_DIR=/Work/NIPT/bin \
     ANALYSIS_DIR=/Work/NIPT/analysis \

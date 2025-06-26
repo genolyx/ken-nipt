@@ -1492,7 +1492,7 @@ def create_npz_files(sample_name, bam_file, bam_suffix, config):
     python2 = os.environ.get("PYTHON2", "python2.7")
     wc_path = os.environ.get("WC", "/opt/wisecondor/wisecondor.py")
     wcx_path = os.environ.get("WCX", "wisecondorx")
-    wcff_path = os.environ.get("WCFF", "wisecondor-ff")
+    #wcff_path = os.environ.get("WCFF", "wisecondor-ff")
 
     # Get lab-specific references
     lab_references = config.get("lab_references", {})
@@ -1504,14 +1504,14 @@ def create_npz_files(sample_name, bam_file, bam_suffix, config):
     wcx_output = (
         f"{ANALYSIS_DIR}/{sample_name}/Output_WCX/{sample_name}.wcx.{bam_suffix}.npz"
     )
-    wcff_output = (
-        f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{sample_name}.wcff.{bam_suffix}.npz"
-    )
+    #wcff_output = (
+    #    f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{sample_name}.wcff.{bam_suffix}.npz"
+    #)
 
     # Get binsize from config
     wc_binsize = config.get("Wisecondor", {}).get("binsize", 200000)
     wcx_binsize = config.get("WisecondorX", {}).get("binsize", 200000)
-    wcff_binsize = config.get("WisecondorFF", {}).get("binsize", 200000)
+    #wcff_binsize = config.get("WisecondorFF", {}).get("binsize", 200000)
 
     # WC convert if not check_file_exists_advanced(wc_output, f"WC NPZ file for {bam_suffix}", "npz"):
     if not run_command(
@@ -1535,18 +1535,15 @@ def create_npz_files(sample_name, bam_file, bam_suffix, config):
             return False
 
     # WCFF convert
-    if not check_file_exists_advanced(
-        wcff_output, f"WCFF NPZ file for {bam_suffix}", "npz"
-    ):
+    '''
+    if not check_file_exists_advanced(wcff_output, f"WCFF NPZ file for {bam_suffix}", "npz"):
         if not run_command(
             f"WCFF convert {bam_suffix}",
-            f"{wcff_path} convert -i {bam_file} -o {wcff_output} -b {wcff_binsize}",
+            f"{wcff_path} convert -i {bam_file} -o {wcff_output} -b {wcff_binsize}"
         ):
-            log_and_print(
-                f"WCFF convert {bam_suffix} failed. Pipeline terminated.", "ERROR"
-            )
+            log_and_print(f"WCFF convert {bam_suffix} failed. Pipeline terminated.", 'ERROR')
             return False
-
+    '''
 
 def create_hmmcopy_files(sample_name, bam_file, bam_suffix):
     """Create 50kb and 10mb wig files and run HMMcopy for a given BAM file"""
@@ -2392,22 +2389,21 @@ def run_wcfamily_prediction(sample_name, paths, bam_type, filter_type, gender):
     # 출력 디렉토리 설정
     wc_out_dir = f"{ANALYSIS_DIR}/{sample_name}/Output_WC/{bam_type}"
     wcx_out_dir = f"{ANALYSIS_DIR}/{sample_name}/Output_WCX/{bam_type}"
-    wcff_out_dir = f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{bam_type}"
+    #wcff_out_dir = f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{bam_type}"
 
     os.makedirs(wc_out_dir, exist_ok=True)
     os.makedirs(wcx_out_dir, exist_ok=True)
-    os.makedirs(wcff_out_dir, exist_ok=True)
+    #os.makedirs(wcff_out_dir, exist_ok=True)
 
     # 완료 파일 경로 정의
     wc_report_txt = os.path.join(wc_out_dir, f"{sample_name}.wc.{bam_type}.report.txt")
     wcx_out_bed = os.path.join(wcx_out_dir, f"{sample_name}.wcx.{bam_type}_bins.bed")
-    wcff_output = os.path.join(
-        wcff_out_dir, f"{sample_name}.wcff.{bam_type}.output"
-    )  # WisecondorFF 완료 파일
+    #wcff_out_tsv = os.path.join( wcff_out_dir, f"{sample_name}.wcff.{bam_type}_predict.tsv")  # WisecondorFF 완료 파일
 
     # 완료 상태 확인
     wc_completed = os.path.exists(wc_report_txt)
     wcx_completed = os.path.exists(wcx_out_bed)
+    #wcff_completed = os.path.exists(wcff_out_tsv)
 
     log_and_print(f"[Prev Completed] WC : {wc_completed}, WCX : {wcx_completed}")
     # wcff_completed = os.path.exists(wcff_output)  # WisecondorFF 완료 파일에 맞게 수정
@@ -2547,21 +2543,57 @@ def run_wcfamily_prediction(sample_name, paths, bam_type, filter_type, gender):
     # ----------------------------
     # WisecondorFF
     # ----------------------------
-    """
-    wcff_output = f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{sample_name}.wcff.{filter_type}.npz"
-    ref_wcff = paths.get(f"ref_wcff_{bam_type}")
-    if ref_wcff and os.path.exists(ref_wcff) and os.path.exists(wcff_npz_input):
-        wcff_out_dir = os.path.join(ANALYSIS_DIR, sample_name, "Output_WCFF", bam_type)
-        os.makedirs(wcff_out_dir, exist_ok=True)
+    '''
+    if not wcff_completed:
+        log_and_print("WisecondorFF analysis started.... ")
+        log_and_print(f"{bam_type}, {filter_type}")
+        if bam_type == "orig" and filter_type == "proper_paired":
+            # proper_paired doesn't have filter_type. It's "orig" as default.
+            # 2506110001.wcff.proper_paired.npz
+            wcff_npz_input = f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{sample_name}.wcff.{filter_type}.npz"
+        else:
+        #    wcx_npz_input = f"{ANALYSIS_DIR}/{sample_name}/Output_WCX/{sample_name}.wcx.{filter_type}_{bam_type}.npz"
+            log_and_print(f"{bam_type} or {filter_type} not supported in WCFF!")
+            return True
 
-        wcff_out_bed = os.path.join(wcff_out_dir, f"{sample_name}.wcff.{bam_type}.bed")
+        if not os.path.exists(wcff_npz_input):
+            log_and_print(f"{wcff_npz_input} not found")
+            return False
 
-        wcff_bin = os.environ.get("WCFF", "wisecondorff")
-        run_command(
-            f"WCFF predict {bam_type}",
-            f"{wcff_bin} predict {wcff_npz_input} {ref_wcff} {wcff_out_bed}"
-        )
-    """
+        wcff_config = paths["config"].get("WCFF", {})
+        wcff_threshold = wcff_config.get(f"{bam_type}_threshold", 6)
+        #ref_wcff = paths.get(f"ref_wcff_{bam_type}_{filter_type}")
+
+        if not os.path.exists(ref_wcff):
+            log_and_print(f"{ref_wcff} not found")
+            return False
+
+        try:
+            if ref_wcff and os.path.exists(ref_wcff) and os.path.exists(wcff_npz_input):
+                log_and_print(f"{wcff_npz_input} is being analyzed with {ref_wcff}")
+                wcff_out_dir = os.path.join(
+                    ANALYSIS_DIR, sample_name, "Output_WCFF", bam_type
+                )
+
+                wcff_out_tsv  = os.path.join(wcff_out_dir, f"{sample_name}.wcff.{bam_type}.out.tsv")
+
+                wcff_bin = os.environ.get("WCFF", "wisecondor-ff")
+                run_command(
+                    f"WCFF detect {bam_type}",
+                    f"{wcff_bin} detect "
+                    f"-z {wcff_threshold} "
+                    f"-i {wcff_npz_input} "
+                    f"-r {ref_wcff} "
+                    f"-o {wcff_out_tsv} "
+                )
+
+        except Exception as e:
+            log_and_print(f"Could not find reference or input npz file: {e}", "WARNING")
+            return False
+
+    else:
+        log_and_print(f"{wcff_out_tsv} already exist! skip it")
+    '''
     return True
 
 
@@ -2724,8 +2756,12 @@ def create_sample_tar(output_dir: str, sample_name: str) -> str:
 
     # tar 생성
     with tarfile.open(tar_path, "w") as tar:
-        # sample_dir 내부 모든 파일/폴더를 arcname="."로 묶어줌
-        tar.add(sample_dir, arcname=".")
+        for name in os.listdir(sample_dir):
+            full = os.path.join(sample_dir, name)
+            if os.path.isdir(full) and name.startswith("Output_"):
+                # sample_dir 내부 모든 파일/폴더를 arcname="."로 묶어줌
+                tar.add(full, arcname=name)
+
     logger.info(f"Created tar: {tar_path}")
     return tar_path
 
@@ -2876,23 +2912,24 @@ def setup_logging(sample_name):
 
 
 def log_and_print(message, level="INFO"):
-    """기존 datetime import와 일관된 로그 함수"""
-    # 호출자 정보
     frame = inspect.currentframe().f_back
-    filename = os.path.basename(frame.f_code.co_filename)
-    lineno = frame.f_lineno
     funcname = frame.f_code.co_name
-
-    # 기존 코드와 동일한 방식으로 datetime 사용
+    lineno   = frame.f_lineno
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    caller_info = f"[{funcname}]:{lineno}"
+    final_message = f"[{timestamp}] [{level}] [{funcname}:{lineno}] {message}"
 
-    # 최종 로그 메시지
-    final_message = f"[{timestamp}] [{level}] {caller_info} {message}"
+    # 1) 기존 logger 핸들러에 전송 (파일에 기록)
+    if level == "INFO":
+        logger.info(final_message)
+    elif level == "WARNING":
+        logger.warning(final_message)
+    elif level == "ERROR":
+        logger.error(final_message)
+    else:
+        logger.debug(final_message)
 
-    # 콘솔 출력
+    # 2) 콘솔에도 바로 찍기
     print(final_message, flush=True)
-
 
 def log_and_print_simple(message, level="INFO"):
     """로그 파일과 콘솔에 동시 출력"""
@@ -3642,7 +3679,7 @@ def main():
     base_step = 9
     if check_file_exists_advanced(md_wcx_orig_result, "WC/WCX orig"):
         progress.update_step(
-            f"{base_step}.1", "Run WC/WCX/WCFF prediction (orig)", "SKIP", "file exists"
+            f"{base_step}.1", "Run WC/WCX prediction (orig)", "SKIP", "file exists"
         )
     else:
         filter_type = "proper_paired"
@@ -3650,14 +3687,15 @@ def main():
             paths["ref_lab"] / "WC" / f"orig_{config['WC']['ref']}_{filter_type}.npz"
         )
         paths[f"ref_wcx_orig_{filter_type}"] = (
-            paths["ref_lab"]
-            / "WCX"
-            / f"orig_{gender}_{config['WCX']['ref']}_{filter_type}.npz"
+            paths["ref_lab"] / "WCX" / f"orig_{gender}_{config['WCX']['ref']}_{filter_type}.npz"
         )
+        #paths[f"ref_wcff_orig_{filter_type}"] = (
+        #    paths["ref_lab"] / "WCFF" / f"orig_{config['WCFF']['ref']}_{filter_type}.npz"
+        #)
 
         if not run_pipeline_step(
             9,
-            "Run WC/WCX/WCFF prediction (orig)",
+            "Run WC/WCX prediction (orig)",
             run_wcfamily_prediction,
             progress,
             sample_name,
@@ -3666,14 +3704,14 @@ def main():
             filter_type,
             gender,
         ):
-            progress.mark_failed("Run WC/WCX/WCFF prediction (orig) failed")
+            progress.mark_failed("Run WC/WCX prediction (orig) failed")
             return 1
 
     # Fetus
     if check_file_exists_advanced(md_wcx_fetus_result, "WC/WCX fetus"):
         progress.update_step(
             f"{base_step}.2",
-            "Run WC/WCX/WCFF prediction (fetus)",
+            "Run WC/WCX prediction (fetus)",
             "SKIP",
             "file exists",
         )
@@ -3689,7 +3727,7 @@ def main():
         )
         if not run_pipeline_step(
             10,
-            "Run WC/WCX/WCFF prediction (fetus)",
+            "Run WC/WCX prediction (fetus)",
             run_wcfamily_prediction,
             progress,
             sample_name,
@@ -3698,13 +3736,13 @@ def main():
             filter_type,
             gender,
         ):
-            progress.mark_failed("Run WC/WCX/WCFF prediction (fetus) failed")
+            progress.mark_failed("Run WC/WCX prediction (fetus) failed")
             return 1
 
     # Mom
     if check_file_exists_advanced(md_wcx_mom_result, "WC/WCX mom"):
         progress.update_step(
-            f"{base_step}.3", "Run WC/WCX/WCFF prediction (mom)", "SKIP", "file exists"
+            f"{base_step}.3", "Run WC/WCX prediction (mom)", "SKIP", "file exists"
         )
     else:
         filter_type = "of"
@@ -3716,7 +3754,7 @@ def main():
         )
         if not run_pipeline_step(
             11,
-            "Run WC/WCX/WCFF prediction (mom)",
+            "Run WC/WCX prediction (mom)",
             run_wcfamily_prediction,
             progress,
             sample_name,
@@ -3725,7 +3763,7 @@ def main():
             filter_type,
             gender,
         ):
-            progress.mark_failed("Run WC/WCX/WCFF prediction (mom) failed")
+            progress.mark_failed("Run WC/WCX prediction (mom) failed")
             return 1
 
     # -------------------------------------------

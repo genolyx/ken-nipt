@@ -427,6 +427,8 @@ def generate_final_results_section(data):
         """리스트 값을 적절하게 포맷팅"""
         if isinstance(value, list):
             if not value:  # 빈 리스트
+                if label in ('Trisomy Result', 'Microdeletion Result'):
+                    return "Low Risk"
                 return "Not Detected"
             elif len(value) == 1:  # 단일 항목
                 return str(value[0])
@@ -494,144 +496,6 @@ def generate_final_results_section(data):
     </div>
     """
     
-    return html
-
-# 대안 1: 더 간단한 버전
-def generate_final_results_section_simple(data):
-    """Simple version with basic list handling"""
-    final_results = data.get('final_results', {})
-    
-    html = """
-    <div class="section">
-        <div class="section-header">
-            <h2 class="section-title">📊 Final Results Summary</h2>
-        </div>
-        <div class="section-content">
-            <div class="info-grid">
-    """
-    
-    def format_value(value):
-        """값을 적절하게 포맷팅"""
-        if isinstance(value, list):
-            if not value:
-                return "Not Detected"
-            else:
-                return " | ".join(str(item) for item in value)
-        else:
-            return str(value) if value is not None else 'N/A'
-    
-    info_items = [
-        ('Order ID', final_results.get('order_id', 'N/A')),
-        ('Fetal Fraction (YFF)', final_results.get('fetal_fraction_yff', 'N/A')),
-        ('Fetal Fraction (seqFF)', final_results.get('fetal_fraction_seqff', 'N/A')),
-        ('FF Ratio', final_results.get('ff_ratio', 'N/A')),
-        ('Sample Bias', final_results.get('sample_bias', 'N/A')),
-        ('Fetal Gender', final_results.get('fetal_gender', 'N/A')),
-        ('Trisomy Result', final_results.get('trisomy_result', [])),
-        ('Microdeletion Result', final_results.get('md_result', []))
-    ]
-    
-    for label, value in info_items:
-        formatted_value = format_value(value)
-        
-        # 스타일링
-        value_class = ""
-        if 'Result' in label:
-            if isinstance(value, list) and len(value) > 0:
-                value_class = "status-abnormal"
-            elif formatted_value in ['Not Detected', 'Low Risk', 'Normal']:
-                value_class = "status-normal"
-        elif label == 'Sample Bias' and value == 'PASS':
-            value_class = "status-pass"
-            
-        html += f"""
-                <div class="info-card">
-                    <div class="info-label">{label}</div>
-                    <div class="info-value"><span class="{value_class}">{formatted_value}</span></div>
-                </div>
-        """
-    
-    html += """
-            </div>
-        </div>
-    </div>
-    """
-    return html
-
-# 대안 2: 테이블 형태
-def generate_final_results_section_table(data):
-    """Table format version"""
-    final_results = data.get('final_results', {})
-    
-    html = """
-    <div class="section">
-        <div class="section-header">
-            <h2 class="section-title">📊 Final Results Summary</h2>
-        </div>
-        <div class="section-content">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Parameter</th>
-                        <th>Result</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-    """
-    
-    def format_list_for_table(value):
-        if isinstance(value, list):
-            if not value:
-                return "Not Detected", "status-normal"
-            else:
-                formatted = "<br>".join(f"• {item}" for item in value)
-                return formatted, "status-abnormal"
-        else:
-            val_str = str(value) if value is not None else 'N/A'
-            status = "status-normal" if val_str in ['Low Risk', 'Normal', 'PASS'] else ""
-            return val_str, status
-    
-    info_items = [
-        ('Order ID', final_results.get('order_id', 'N/A')),
-        ('Fetal Fraction (YFF)', final_results.get('fetal_fraction_yff', 'N/A')),
-        ('Fetal Fraction (seqFF)', final_results.get('fetal_fraction_seqff', 'N/A')),
-        ('FF Ratio', final_results.get('ff_ratio', 'N/A')),
-        ('Sample Bias', final_results.get('sample_bias', 'N/A')),
-        ('Fetal Gender', final_results.get('fetal_gender', 'N/A')),
-        ('Trisomy Result', final_results.get('final_trisomy_result', [])),
-        ('Microdeletion Result', final_results.get('final_md_result', []))
-    ]
-    
-    for label, value in info_items:
-        formatted_value, status_class = format_list_for_table(value)
-        
-        status_icon = ""
-        if 'Result' in label:
-            if isinstance(value, list) and len(value) > 0:
-                status_icon = "⚠️ Detected"
-                status_class = "status-abnormal"
-            elif formatted_value == "Not Detected":
-                status_icon = "✅ Normal"
-                status_class = "status-normal"
-        elif label == 'Sample Bias' and value == 'PASS':
-            status_icon = "✅ Pass"
-            status_class = "status-pass"
-        
-        html += f"""
-                    <tr>
-                        <td><strong>{label}</strong></td>
-                        <td>{formatted_value}</td>
-                        <td><span class="{status_class}">{status_icon}</span></td>
-                    </tr>
-        """
-    
-    html += """
-                </tbody>
-            </table>
-        </div>
-    </div>
-    """
     return html
 
 # 사용 예시

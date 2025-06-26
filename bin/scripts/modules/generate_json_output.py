@@ -1114,7 +1114,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type="
                             f"https://deciphergenomics.org/browser#q/grch37:{detected_region}"
                         )
                         results[md_key]["image"]["WCX"] = (
-                            f"Output_WCX/chr_plots/{data_src}/chr{row['chr']}.png"
+                            (f"Output_WCX/chr_plots/{data_src}/chr{row['chr']}.png"),
                         )
                         wcx_chr_list.append(row["chr"])
                         break
@@ -1182,6 +1182,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type="
                     "z_score": {"WC": None, "WCX": None},
                     "detected_region_link": {"WC": "", "WCX": ""},
                     "image": {"WC": "", "WCX": ""},
+                    "checked": False,
                 }
 
                 # WC 데이터 채우기
@@ -1225,6 +1226,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type="
                 "z_score": {"WC": None, "WCX": None},
                 "detected_region_link": {"WC": "", "WCX": ""},
                 "image": {"WC": "", "WCX": ""},
+                "checked": False,
             }
 
     return results, wcx_chr_list
@@ -1416,7 +1418,8 @@ def build_nipt_json(
         if entry["result"] == "High Risk"
     ]
     final_result_trisomy_output = (
-        high_risk_results if high_risk_results else ["Low Risk"]
+        #high_risk_results if high_risk_results else ["Low Risk"]
+        high_risk_results if high_risk_results else []
     )
     output[APPID]["final_results"]["trisomy_result"] = final_result_trisomy_output
     output[APPID]["review"]["reviewer1"]["Trisomy_result"] = (

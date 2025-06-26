@@ -56,8 +56,7 @@
     "fetus_call_threshold": 6.0,
     "mom_call_threshold": 15.0,
     "binsize": 200000,
-    "ref": "200k",
-    "cytoband": "/Work/NIPT/data/bed/common/cytoBand.txt"
+    "ref": "200k"
   },
   "PRIZM": {
     "qc_cutoff": 3.0,
