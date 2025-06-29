@@ -9,6 +9,13 @@ ENV TZ=Asia/Seoul
 #RUN echo 'Acquire::AllowInsecureRepositories "true";' > /etc/apt/apt.conf.d/99insecure && \
 #    echo 'Acquire::AllowDowngradeToInsecureRepositories "true";' >> /etc/apt/apt.conf.d/99insecure
 
+# Install tzdata and set timezone
+RUN apt-get update && \
+    apt-get install -y tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 # Update package lists and install software-properties-common
 RUN apt-get update && \
     apt-get install -y --no-install-recommends software-properties-common && \
@@ -246,6 +253,10 @@ COPY bin/scripts/modules/gender_detector.py /Work/NIPT/bin/
 # Copy and setup pipeline
 COPY bin/scripts/nipt_pipeline.py /Work/NIPT/bin/
 RUN chmod +x /Work/NIPT/bin/nipt_pipeline.py
+
+# Generate Reference for WC family
+COPY bin/scripts/generate_wcfamily_reference.sh /Work/NIPT/bin/
+RUN chmod +x /Work/NIPT/bin/generate_wcfamily_reference.sh
 
 # Set environment variables
 ENV SRC_DIR=/Work/NIPT/bin \

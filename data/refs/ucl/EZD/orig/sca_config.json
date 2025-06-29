@@ -18,12 +18,12 @@
             "detection_types": ["XYY", "XXY", "Normal"]
         },
         "female": {
-            "xo_threshold": -6.0,
-            "xxx_threshold": 4.5,
-            "ur_x_min": 5.35,
-            "ur_x_max": 5.45,
-            "z_normal_min": -3.0,
-            "z_normal_max": 1.0,
+            "xo_z_threshold": -6.0,
+            "xxx_z_threshold": 4.5,
+            "ur_x_low": 5.35,
+            "ur_x_high": 5.45,
+            "z_normal_low": -3.0,
+            "z_normal_high": 1.0,
             "xo_ur_x_min": 4.9,
             "xo_ur_x_max": 5.2,
             "xxx_ur_x_min": 5.6,

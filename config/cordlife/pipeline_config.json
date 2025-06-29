@@ -1,5 +1,5 @@
 {
-    "QC": {
+  "QC": {
     "max_fq_size": 30000000,
     "downsample_size": 7500000,
     "bwa_threads": 16,
@@ -17,8 +17,7 @@
     "GC_content_max": 55.0,
     "YFF": 4.0,
     "seqFF": 4.0,
-    "FFGap_1": 2.5,
-    "FFGap_2": 3.0
+    "FF_Ratio": 2.5
   },
   "FF_Gender_Config": {
     "fragment_size_cutoff": 160,
@@ -57,14 +56,15 @@
     "fetus_call_threshold": 6.0,
     "mom_call_threshold": 15.0,
     "binsize": 200000,
-    "ref": "200k",
-    "cytoband": "/Work/NIPT/data/bed/common/cytoBand.txt"
+    "ref": "200k"
   },
   "PRIZM": {
-    "qc_cutoff": 3.0
+    "qc_cutoff": 3.0,
+    "resolution_dpi": 200
   },
   "EZD": {
-    "qc_cutoff": 3.0
+    "qc_cutoff": 3.0,
+    "resolution_dpi": 200
   },
   "MD_Target_8": {
     "bed": "TargetDB_md8.bed",

@@ -3,8 +3,7 @@
 ---------------------------------------------
 Generate HTML report from NIPT JSON file
 
-Author: Kenneth Kwon
-Contact: kenneth@genecurate.xyz
+Author: Hyukjung Kwon
 Updated: 2025-06-05
 ---
 """
@@ -13,12 +12,15 @@ import os
 import sys
 import json
 import argparse
+import logging
 from pathlib import Path
 from datetime import datetime
 
 __author__ = 'Kenneth Kwon'
-__email__ = "kenneth@genecurate.xyz"
-__version__ = '1.1'
+__email__ = "joykwon77@gmail.com"
+__version__ = '1.0'
+
+logger = logging.getLogger(__name__)
 
 def file_check(parser, arg):
     if not os.path.exists(arg):
@@ -332,7 +334,7 @@ def generate_html_template():
         <div class="header">
             <div class="algorithm-version">Algorithm {algorithm_version}</div>
             <h1>NIPT Analysis Report</h1>
-            <div class="subtitle">Sample ID: {sample_id}</div>
+            <div class="subtitle">Order ID: {sample_id}</div>
         </div>
         
         <div class="content">
@@ -407,8 +409,9 @@ def generate_lab_test_section(data):
     """
     return html
 
+
 def generate_final_results_section(data):
-    """Generate Final Results section HTML"""
+    """Generate Final Results section HTML with proper list handling"""
     final_results = data.get('final_results', {})
     
     html = """
@@ -420,32 +423,70 @@ def generate_final_results_section(data):
             <div class="info-grid">
     """
     
+    def format_list_value(value, label):
+        """리스트 값을 적절하게 포맷팅"""
+        if isinstance(value, list):
+            if not value:  # 빈 리스트
+                if label in ('Trisomy Result', 'Microdeletion Result'):
+                    return "Low Risk"
+                return "Not Detected"
+            elif len(value) == 1:  # 단일 항목
+                return str(value[0])
+            else:  # 여러 항목
+                # 모든 리스트를 쉼표로 구분해서 표시
+                return ', '.join(str(item) for item in value)
+        else:
+            return str(value) if value is not None else 'N/A'
+    
+    def get_result_status_class(value, label):
+        """결과 값에 따른 CSS 클래스 결정"""
+        # 1) 리스트일 때
+        if isinstance(value, list):
+            normal_terms = {'Low Risk', 'Normal', 'Not Detected'}
+            # 1) 빈 리스트: 정상
+            if not value:
+                return "status-normal"
+            # 2) 리스트에 하나라도 정상 용어가 아닌 항목이 있으면 비정상
+            if any(item not in normal_terms for item in value):
+                return "status-abnormal"
+            # 3) 모두 정상 용어만 있을 경우: 정상
+            return "status-normal"
+
+        # 2) 스칼라 값일 때 (기존 로직)
+        if 'Result' in label:
+            if value in ['Low Risk', 'Normal', 'Not Detected']:
+                return "status-normal"
+            if value in ['High Risk', 'Abnormal', 'Detected']:
+                return "status-abnormal"
+
+        if label.lower() == 'sample_bias' and value == 'PASS':
+            return "status-pass"
+
+        return "" 
+
+    # 정보 항목들 - 정확한 JSON 키 이름 사용
     info_items = [
-        ('Sample ID', final_results.get('sample_id', 'N/A')),
+        ('Order ID', final_results.get('order_id', 'N/A')),
         ('Fetal Fraction (YFF)', final_results.get('fetal_fraction_yff', 'N/A')),
         ('Fetal Fraction (seqFF)', final_results.get('fetal_fraction_seqff', 'N/A')),
         ('FF Ratio', final_results.get('ff_ratio', 'N/A')),
         ('Sample Bias', final_results.get('sample_bias', 'N/A')),
         ('Fetal Gender', final_results.get('fetal_gender', 'N/A')),
-        ('Trisomy Result', final_results.get('trisomy_result', 'N/A')),
-        ('Microdeletion Result', final_results.get('md_result', 'N/A'))
+        ('Trisomy Result', final_results.get('trisomy_result', [])),  # final_ 없음!
+        ('Microdeletion Result', final_results.get('md_result', []))  # final_ 없음!
     ]
     
     for label, value in info_items:
-        # Add appropriate styling
-        value_class = ""
-        if 'Result' in label:
-            if value in ['Low Risk', 'Normal', 'Not Detected']:
-                value_class = "status-normal"
-            elif value in ['High Risk', 'Abnormal', 'Detected']:
-                value_class = "status-abnormal"
-        elif label == 'Sample Bias' and value == 'PASS':
-            value_class = "status-pass"
-            
+        # 값 포맷팅
+        formatted_value = format_list_value(value, label)
+        
+        # CSS 클래스 결정
+        value_class = get_result_status_class(value, label)
+        
         html += f"""
                 <div class="info-card">
                     <div class="info-label">{label}</div>
-                    <div class="info-value"><span class="{value_class}">{value}</span></div>
+                    <div class="info-value"><span class="{value_class}">{formatted_value}</span></div>
                 </div>
         """
     
@@ -454,7 +495,37 @@ def generate_final_results_section(data):
         </div>
     </div>
     """
+    
     return html
+
+# 사용 예시
+if __name__ == "__main__":
+    # 테스트 데이터
+    test_data = {
+        'final_results': {
+            'order_id': '2506040012',
+            'fetal_fraction_yff': 'N/A',
+            'fetal_fraction_seqff': '2.44',
+            'ff_ratio': '0.28',
+            'sample_bias': 'PASS',
+            'fetal_gender': 'Female',
+            'final_trisomy_result': ['Trisomy21'],
+            'final_md_result': ['md8', 'other_md320', 'other_md87']
+        }
+    }
+    
+    logger.info("=== 옵션 1: 배지 스타일 (추천) ===")
+    result1 = generate_final_results_section(test_data)
+    logger.info("HTML 생성 완료")
+    
+    logger.info("\n=== 옵션 2: 간단한 버전 ===")
+    result2 = generate_final_results_section_simple(test_data)
+    logger.info("HTML 생성 완료")
+    
+    logger.info("\n=== 옵션 3: 테이블 형태 ===")
+    result3 = generate_final_results_section_table(test_data)
+    logger.info("HTML 생성 완료")
+
 
 def generate_trisomy_results_section(data):
     """Generate Trisomy Results section HTML"""
@@ -562,7 +633,8 @@ def generate_trisomy_details_section(data, sample_id=None):
                     <thead>
                         <tr>
                             <th>Chromosome</th>
-                            <th>Detection</th>
+                            <th>EZD Detection</th>
+                            <th>PRIZM Detection</th>
                             <th>Z-Score</th>
                             <th>UAR (%)</th>
                             <th>Z-Score Threshold</th>
@@ -598,13 +670,17 @@ def generate_trisomy_details_section(data, sample_id=None):
         sorted_chromosomes = sorted(result_table.items(), key=chromosome_sort_key)
         
         for chr_key, chr_data in sorted_chromosomes:
-            detection = chr_data.get('Detection', 'N/A')
-            detection_class = "low-risk" if detection == 'Low Risk' else ("high-risk" if detection == 'High Risk' else "low-risk")
+            ezd_detection = chr_data.get('EZD Detection', 'N/A')
+            ezd_detection_class = "low-risk" if ezd_detection == 'Low Risk' else ("high-risk" if ezd_detection == 'High Risk' else "low-risk")
             
+            prizm_detection = chr_data.get('PRIZM Detection', 'N/A')
+            prizm_detection_class = "low-risk" if prizm_detection == 'Low Risk' else ("high-risk" if prizm_detection == 'High Risk' else "low-risk")
+
             html += f"""
                         <tr>
                             <td><strong>{chr_key}</strong></td>
-                            <td><span class="{detection_class}">{detection}</span></td>
+                            <td><span class="{ezd_detection_class}">{ezd_detection}</span></td>
+                            <td><span class="{prizm_detection_class}">{prizm_detection}</span></td>
                             <td>{chr_data.get('Z-score', 'N/A')}</td>
                             <td>{chr_data.get('UAR(%)', 'N/A')}</td>
                             <td>{chr_data.get('Z-score threshold', 'N/A')}</td>
@@ -709,11 +785,10 @@ def generate_microdeletion_section(data, sample_id=None):
             """
             
             # Image buttons
-            image_data = src_data.get('image', [])
-            if image_data and len(image_data) > 0:
-                img = image_data[0]
-                html += generate_file_button(img.get('WC'), 'WC Plot', 'btn btn-plot', sample_id)
-                html += generate_file_button(img.get('WCX'), 'WCX Plot', 'btn btn-image', sample_id)
+            image_data = src_data.get('image', {})
+            if image_data and isinstance(image_data, dict):
+                html += generate_file_button(image_data.get('WC'), 'WC Plot', 'btn btn-plot', sample_id)
+                html += generate_file_button(image_data.get('WCX'), 'WCX Plot', 'btn btn-image', sample_id)
             
             html += """
                 </div>
@@ -949,8 +1024,9 @@ def generate_quality_control_section(data, sample_id=None):
         """
         
         file_buttons = [
-            ('qualimap_report', 'Qualimap Report', 'btn btn-report'),
-            ('qc_summary_report', 'QC Summary Report', 'btn btn-report')
+            ('Fastqc_R1_report', 'FastQC R1 Report', 'btn btn-report'),
+            ('Fastqc_R2_report', 'FastQC R2 Report', 'btn btn-report'),
+            ('Qualimap_report', 'Qualimap Report', 'btn btn-report')
         ]
         
         for file_key, button_text, button_class in file_buttons:
@@ -977,15 +1053,16 @@ def generate_html_report(json_file, output_dir):
         data = json.load(f)
     
     nipt_data = data.get('NIPT', {})
-    sample_id = nipt_data.get('final_results', {}).get('sample_id', 'Unknown')
+    sample_id = nipt_data.get('final_results', {}).get('order_id', 'Unknown')
     algorithm_version = nipt_data.get('algorithm_version', 'v1.0')
     
     # Check if sample directory exists and inform user
-    sample_dir = os.path.join(os.path.dirname(json_file), sample_id)
+    #sample_dir = os.path.join(os.path.dirname(json_file), sample_id)
+    sample_dir = os.path.dirname(json_file)
     if not os.path.exists(sample_dir):
-        print(f"⚠️  Warning: Sample directory '{sample_dir}' not found.")
-        print(f"📂 Expected structure: {sample_id}/Output_EZD/, {sample_id}/Output_PRIZM/, etc.")
-        print("🔗 File links in HTML may not work unless the directory structure is correct.")
+        logger.info(f"⚠️  Warning: Sample directory '{sample_dir}' not found.")
+        logger.info(f"📂 Expected structure: {sample_id}/Output_EZD/, {sample_id}/Output_PRIZM/, etc.")
+        logger.info("🔗 File links in HTML may not work unless the directory structure is correct.")
     
     # Generate content sections
     content_sections = []
@@ -1023,14 +1100,15 @@ def generate_html_report(json_file, output_dir):
         timestamp=timestamp,
         version=__version__
     )
+    logger.info("HTML content generated successfully")
     
     # Save HTML file
     html_file = os.path.join(output_dir, f"{sample_id}_report.html")
     with open(html_file, 'w', encoding='utf-8') as f:
         f.write(html_content)
     
-    print(f"📁 HTML report saved: {html_file}")
-    print(f"🖼️  Expected image directory: {sample_dir}")
+    logger.info(f"HTML report saved: {html_file}")
+    logger.info(f"Expected image directory: {sample_dir}")
     
     return html_file
 
@@ -1040,7 +1118,7 @@ def generate_nipt_html_report(json_file_path, output_dir):
         html_file = generate_html_report(json_file_path, output_dir)
         return html_file
     except Exception as e:
-        print(f"Error generating HTML report: {e}")
+        logger.error(f"Error generating HTML report: {e}")
         raise
 
 def main():
@@ -1061,20 +1139,20 @@ def main():
     # Generate HTML report
     try:
         html_file = generate_html_report(args.json_file, args.output_dir)
-        print(f"✅ HTML report generated successfully: {html_file}")
-        print(f"📂 Location: {os.path.abspath(html_file)}")
+        logger.info(f"HTML report generated successfully: {html_file}")
+        logger.info(f"Location: {os.path.abspath(html_file)}")
         
         # Optional: Open in browser
         try:
             import webbrowser
             file_url = f"file://{os.path.abspath(html_file)}"
-            print(f"🌐 Opening in browser: {file_url}")
+            logger.info(f"🌐 Opening in browser: {file_url}")
             webbrowser.open(file_url)
         except:
-            print("💡 To view the report, open the HTML file in your web browser")
+            logger.error("💡 To view the report, open the HTML file in your web browser")
             
     except Exception as e:
-        print(f"❌ Error generating HTML report: {e}")
+        logger.error(f"❌ Error generating HTML report: {e}")
         return 1
     
     return 0

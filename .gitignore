@@ -12,8 +12,14 @@
 /src/rsc_log/
 /src/test/
 
+/src/util/36mer
+/src/util/100mer
+
 *.swp
 *.fasta
 bin/.*
 
+/data/refs/cordlife/gen_ref/
+/data/refs/ucl/gen_ref/
+/data/refs/vn/gen_ref/
 *.npz

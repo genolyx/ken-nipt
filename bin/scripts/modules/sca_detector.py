@@ -46,9 +46,9 @@ class SCADetector:
         if self.config_base_dir is None:
             # 기본 경로 (현재 디렉토리)
             config_files = {
-                'orig': 'orig_sca_config.json',
-                'fetus': 'fetus_sca_config.json', 
-                'mom': 'mom_sca_config.json'
+                'orig': 'sca_config.json',
+                'fetus': 'sca_config.json', 
+                'mom': 'sca_config.json'
             }
             return config_files.get(config_type)
         
@@ -87,12 +87,12 @@ class SCADetector:
                         "margin": 0.005
                     },
                     "female": {
-                        "xo_threshold": -6.0,
-                        "xxx_threshold": 4.5,
-                        "ur_x_min": 5.35,
-                        "ur_x_max": 5.45,
-                        "z_normal_min": -3.0,
-                        "z_normal_max": 1.0,
+                        "xo_z_threshold": -6.0,
+                        "xxx_z_threshold": 4.5,
+                        "ur_x_low": 5.35,
+                        "ur_x_high": 5.45,
+                        "z_normal_low": -3.0,
+                        "z_normal_high": 1.0,
                         "xo_ur_x_min": 4.9,
                         "xo_ur_x_max": 5.2,
                         "xxx_ur_x_min": 5.6,
@@ -116,12 +116,12 @@ class SCADetector:
                         "margin": 0.005
                     },
                     "female": {
-                        "xo_threshold": -6.5,
-                        "xxx_threshold": 4.0,
-                        "ur_x_min": 5.3,
-                        "ur_x_max": 5.5,
-                        "z_normal_min": -3.2,
-                        "z_normal_max": 1.2,
+                        "xo_z_threshold": -6.5,
+                        "xxx_z_threshold": 4.0,
+                        "ur_x_low": 5.3,
+                        "ur_x_high": 5.5,
+                        "z_normal_low": -3.2,
+                        "z_normal_high": 1.2,
                         "xo_ur_x_min": 4.8,
                         "xo_ur_x_max": 5.3,
                         "xxx_ur_x_min": 5.5,
@@ -143,12 +143,12 @@ class SCADetector:
                         "reason": "Mom reference does not require male SCA detection"
                     },
                     "female": {
-                        "xo_threshold": -5.5,
-                        "xxx_threshold": 5.0,
-                        "ur_x_min": 5.4,
-                        "ur_x_max": 5.6,
-                        "z_normal_min": -2.5,
-                        "z_normal_max": 1.5,
+                        "xo_z_threshold": -5.5,
+                        "xxx_z_threshold": 5.0,
+                        "ur_x_low": 5.4,
+                        "ur_x_high": 5.6,
+                        "z_normal_low": -2.5,
+                        "z_normal_high": 1.5,
                         "xo_ur_x_min": 5.0,
                         "xo_ur_x_max": 5.3,
                         "xxx_ur_x_min": 5.7,
@@ -279,12 +279,12 @@ class SCADetector:
         female_config = config['sca_detection']['female']
         
         return {
-            'xo_threshold': female_config['xo_threshold'],
-            'xxx_threshold': female_config['xxx_threshold'],
-            'ur_x_min': female_config['ur_x_min'],
-            'ur_x_max': female_config['ur_x_max'],
-            'z_normal_min': female_config['z_normal_min'],
-            'z_normal_max': female_config['z_normal_max'],
+            'xo_z_threshold': female_config['xo_z_threshold'],
+            'xxx_z_threshold': female_config['xxx_z_threshold'],
+            'ur_x_low': female_config['ur_x_low'],
+            'ur_x_high': female_config['ur_x_high'],
+            'z_normal_low': female_config['z_normal_low'],
+            'z_normal_high': female_config['z_normal_high'],
             'xo_ur_x_min': female_config['xo_ur_x_min'],
             'xo_ur_x_max': female_config['xo_ur_x_max'],
             'xxx_ur_x_min': female_config['xxx_ur_x_min'],
@@ -314,19 +314,89 @@ class SCADetector:
         
         # SCA 판정
         if ur_y > boundary_y + params['margin']:
-            if ur_x >= params['ur_x_threshold']:
+            if ur_x <= params['ur_x_threshold']:
                 return "XYY Detected"
             else:
                 return "XXY Detected"
         elif ur_y > boundary_y:
-            if ur_x >= params['ur_x_threshold']:
+            if ur_x <= params['ur_x_threshold']:
                 return "XYY Suspected"
             else:
                 return "XXY Suspected"
         else:
             return "Not Detected"
-    
+
     def detect_female_sca(self, ur_x, z_score, config_type='orig'):
+
+        params = self.get_female_params(config_type)
+        if params is None:
+            return "설정 오류"
+        
+        # UR_X 영역 분류
+        def classify_ur_x_region(ur_x_val):
+            if ur_x_val < params['xo_ur_x_max']:
+                return 'XO_DETECTED'
+            elif ur_x_val < params['ur_x_low']:
+                return 'XO_SUSPECTED'
+            elif ur_x_val <= params['ur_x_high']:
+                return 'NORMAL'
+            elif ur_x_val < params['xxx_ur_x_min']:
+                return 'XXX_SUSPECTED'
+            else:
+                return 'XXX_DETECTED'
+        
+        # Z-score 영역 분류
+        def classify_z_region(z_val):
+            if z_val < params['xo_z_threshold']:
+                return 'XO'
+            elif z_val <= params['z_normal_high']:
+                return 'NORMAL'
+            elif z_val > params['xxx_z_threshold']:
+                return 'XXX'
+            else:
+                return 'BORDERLINE'
+        
+        ur_x_region = classify_ur_x_region(ur_x)
+        z_region = classify_z_region(z_score)
+        
+        # 결과 매핑 테이블
+        result_map = {
+            # (Z_region, UR_X_region): Result
+            ('NORMAL', 'NORMAL'): "Not Detected",
+            
+            # XO cases
+            ('XO', 'XO_DETECTED'): "XO Detected",
+            ('XO', 'XO_SUSPECTED'): "XO Suspected",
+            ('XO', 'NORMAL'): "XO Suspected",
+            ('NORMAL', 'XO_DETECTED'): "XO Suspected",
+            ('NORMAL', 'XO_SUSPECTED'): "XO Suspected",
+            
+            # XXX cases  
+            ('XXX', 'XXX_DETECTED'): "XXX Detected",
+            ('XXX', 'XXX_SUSPECTED'): "XXX Suspected",
+            ('XXX', 'NORMAL'): "XXX Suspected",
+            ('NORMAL', 'XXX_DETECTED'): "XXX Suspected",
+            ('NORMAL', 'XXX_SUSPECTED'): "XXX Suspected",
+            
+            # Borderline cases
+            ('BORDERLINE', 'NORMAL'): "Not Detected",
+            ('BORDERLINE', 'XO_SUSPECTED'): "XO Suspected",
+            ('BORDERLINE', 'XO_DETECTED'): "XO Suspected",
+            ('BORDERLINE', 'XXX_SUSPECTED'): "XXX Suspected",
+            ('BORDERLINE', 'XXX_DETECTED'): "XXX Suspected",
+            
+            # Cross cases (XO z-score + XXX ur_x or vice versa)
+            ('XO', 'XXX_SUSPECTED'): "Not Detected",  # 상충되는 신호
+            ('XO', 'XXX_DETECTED'): "Not Detected",   # 상충되는 신호
+            ('XXX', 'XO_SUSPECTED'): "Not Detected",  # 상충되는 신호
+            ('XXX', 'XO_DETECTED'): "Not Detected",   # 상충되는 신호
+        }
+        
+        # 결과 반환
+        key = (z_region, ur_x_region)
+        return result_map.get(key, "Not Detected")
+
+    def detect_female_sca_old(self, ur_x, z_score, config_type='orig'):
         """
         Female SCA detection 수행
         
@@ -343,18 +413,22 @@ class SCADetector:
             return "설정 오류"
         
         # XO Detection
-        if (z_score < params['xo_threshold'] and 
-            params['xo_ur_x_min'] <= ur_x <= params['xo_ur_x_max']):
+        # xo_ur_x_min may drop much, so, don't consider this
+        if (z_score < params['xo_z_threshold'] and 
+            #params['xo_ur_x_min'] <= ur_x <= params['xo_ur_x_max']):
+            ur_x <= params['xo_ur_x_max']):
             return "XO Detected"
         
         # XXX Detection  
-        if (z_score > params['xxx_threshold'] and
-            params['xxx_ur_x_min'] <= ur_x <= params['xxx_ur_x_max']):
+        # xxx_ur_x_max may increase much, so, don't consider this
+        if (z_score > params['xxx_z_threshold'] and
+            #params['xxx_ur_x_min'] <= ur_x <= params['xxx_ur_x_max']):
+            ur_x >= params['xxx_ur_x_min']):
             return "XXX Detected"
         
         # Normal
-        if (params['z_normal_min'] <= z_score <= params['z_normal_max'] and
-            params['ur_x_min'] <= ur_x <= params['ur_x_max']):
+        if (params['z_normal_low'] <= z_score <= params['z_normal_high'] and
+            params['ur_x_low'] <= ur_x <= params['ur_x_high']):
             return "Not Detected"
         
         return "Not Detected"

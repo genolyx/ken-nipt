@@ -14,6 +14,7 @@ usage() {
     echo "  --no-log                Disable logging to file (output to stdout only)"
     echo "  --detached              Run in detached mode (for daemon use)"
     echo "  -f                      Force execution even if completed marker exists"
+    echo "  -algorithm_only         Run Algorithm only"
     echo "  -h                      Show this help message"
     exit 1
 }
@@ -64,6 +65,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -f|--force)
             FORCE_EXECUTION=true
+            shift
+            ;;
+        -ao|--algorithm_only)
+            ALGORITHM_ONLY=true
+            shift
+            ;;
+        -fr|--force_run)
+            FORCE_RUN=true
             shift
             ;;
         -h)
@@ -161,6 +170,12 @@ echo ""
 # Docker 실행 시작 시간 기록
 echo "Docker execution started at: $(date)"
 
+# Optional 인자 처리
+OPTIONAL_ARGS=()
+if [ "$ALGORITHM_ONLY" == "true" ]; then
+    OPTIONAL_ARGS+=("--algorithm_only")
+fi
+
 docker run \
     --user $(id -u):$(id -g) \
     --name "$SAMPLE_NAME" \
@@ -199,7 +214,8 @@ docker run \
     --fastq_r1 "$FASTQ_R1" \
     --fastq_r2 "$FASTQ_R2" \
     --labcode "$LABCODE" \
-    --age "$AGE"
+    --age "$AGE" \
+    "${OPTIONAL_ARGS[@]}"
 
 # Docker 실행 결과 저장
 DOCKER_EXIT_CODE=$?
