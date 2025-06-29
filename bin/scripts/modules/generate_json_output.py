@@ -895,67 +895,6 @@ def read_chromosome_analysis_from_ezd_prizm_detailed(
     logger.info(f"Processed {len(chromosomes)} chromosomes from EZD + PRIZM data")
     return chromosomes
 
-
-def read_chromosome_analysis_from_ezd_detailed(file_path):
-    """Read chromosome analysis results from EZD detection files with full chromosome table"""
-    logger.info(f"Reading EZD detailed data from: {file_path}")
-
-    df = safe_read_csv(file_path, sep="\t")
-    if df is None:
-        logger.warning(f"Failed to read EZD file: {file_path}")
-        return {}
-
-    logger.info(
-        f"EZD file read successfully. Shape: {df.shape}, Columns: {list(df.columns)}"
-    )
-
-    chromosomes = {}
-
-    for _, row in df.iterrows():
-        chr_name = row["chr"]
-
-        # Convert chromosome name to full name for display
-        chr_display_name = chr_name.replace("chr", "Chromosome ")
-        if chr_display_name == "Chromosome X":
-            chr_display_name = "Chromosome X"
-        elif chr_display_name == "Chromosome Y":
-            chr_display_name = "Chromosome Y"
-
-        # Convert detection result to appropriate format
-        detection_result = row["result"]
-        if detection_result == "Not Detected":
-            detection = "Low Risk"  # or "Not Detected" based on preference
-        elif detection_result == "Detected" or "Suspected":
-            detection = "High Risk"
-        else:
-            detection = "Low Risk"  # Default fallback
-
-        logger.debug(
-            f"Processing {chr_name} -> {chr_display_name}: {detection_result} -> {detection}"
-        )
-
-        # For chrX and chrY, set thresholds to null initially
-        if chr_name in ["chrX", "chrY"]:
-            z_threshold = None
-            uar_threshold = None
-        else:
-            # Will be updated later from threshold file
-            z_threshold = None  # To be filled from threshold file
-            uar_threshold = None  # To be filled from threshold file
-
-        chromosomes[chr_display_name] = {
-            "EZD Detection": ezd_detection,
-            "PRIZM Detection": prizm_detection,
-            "Z-score": row["Z"] if pd.notna(row["Z"]) else None,
-            "UAR(%)": row["UAR"] if pd.notna(row["UAR"]) else None,
-            "Z-score threshold": z_threshold,
-            "UAR threshold": uar_threshold,
-        }
-
-    logger.info(f"Processed {len(chromosomes)} chromosomes from EZD file")
-    return chromosomes
-
-
 def read_threshold_data(threshold_file_path):
     """Read threshold data from external file"""
     try:
@@ -1357,15 +1296,21 @@ def build_nipt_json(
             "review": {
                 "reviewer1": {
                     "Trisomy_result": "",
-                    "Trisomy_comment": "",
-                    "MD_result": "",
-                    "MD_comment": "",
+                    "Trisomy_comment": None,
+                    "MD_result": None,
+                    "MD_comment": None,
+                    "saved": False,
+                    "username": None,
+                    "name": None
                 },
                 "reviewer2": {
                     "Trisomy_result": "",
-                    "Trisomy_comment": "",
-                    "MD_result": "",
-                    "MD_comment": "",
+                    "Trisomy_comment": None,
+                    "MD_result": None,
+                    "MD_comment": None,
+                    "saved": False,
+                    "username": None,
+                    "name": None
                 },
             },
             "lab_test": {
@@ -1422,12 +1367,21 @@ def build_nipt_json(
         high_risk_results if high_risk_results else []
     )
     output[APPID]["final_results"]["trisomy_result"] = final_result_trisomy_output
+
     output[APPID]["review"]["reviewer1"]["Trisomy_result"] = (
         "High Risk" if high_risk_results else "Low Risk"
     )
+
+    Trisoy_LowRisk_comment = "Result consistent with two copies of autosomes and sex chromosomes."
+    if not high_risk_results:
+        output[APPID]["review"]["reviewer1"]["Trisomy_comment"] = Trisoy_LowRisk_comment
+    
     output[APPID]["review"]["reviewer2"]["Trisomy_result"] = (
         "High Risk" if high_risk_results else "Low Risk"
     )
+    if not high_risk_results:
+        output[APPID]["review"]["reviewer2"]["Trisomy_comment"] = Trisoy_LowRisk_comment
+    
     # ----------------------------------------------
 
     # 3. Build trisomy details
@@ -1450,7 +1404,6 @@ def build_nipt_json(
         # Read chromosome analysis
         ezd_chr_file = f"{analysis_dir}/{sample_name}/Output_EZD/{group}/Trisomy_detect_result_{group}_with_SCA.tsv"
         prizm_chr_file = f"{analysis_dir}/{sample_name}/Output_PRIZM/{group}/{sample_name}_{group}.trisomy_detection.tsv"
-        # result_table = read_chromosome_analysis_from_ezd_detailed(chr_file)
         result_table = read_chromosome_analysis_from_ezd_prizm_detailed(
             ezd_chr_file, prizm_chr_file, fetus_gender
         )
@@ -1532,9 +1485,16 @@ def build_nipt_json(
     output[APPID]["review"]["reviewer1"]["MD_result"] = (
         "High Risk" if len(detected_md_output) > 0 else "Low Risk"
     )
+
+    MD_LowRisk_comment = "Results consistent with low risk of microdeletion/duplications in the regions of interest."
+    if len(detected_md_output) == 0:
+        output[APPID]["review"]["reviewer1"]["MD_comment"] = MD_LowRisk_comment
+
     output[APPID]["review"]["reviewer2"]["MD_result"] = (
         "High Risk" if len(detected_md_output) > 0 else "Low Risk"
     )
+    if len(detected_md_output) == 0:
+        output[APPID]["review"]["reviewer2"]["MD_comment"] = MD_LowRisk_comment
 
     # md_results_table update. It's initialized as "Low Risk" for all diseases.
     for row in md_results_table:
