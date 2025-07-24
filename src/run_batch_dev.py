@@ -252,9 +252,9 @@ if __name__ == "__main__":
     try:
         logger.info("Run daemon...")
 
-        #command = "bash /home/ken/ken-nipt/src/run_nipt_dev.sh -s SAMPLE_NAME -1 FQ1 -2 FQ2 -l LABCODE -root /home/ken/ken-nipt -work WORK_DIR --detached"
+        #command = "bash /home/ken/ken-nipt/src/run_nipt_manual.sh -s SAMPLE_NAME -1 FQ1 -2 FQ2 -l LABCODE -root /home/ken/ken-nipt -work WORK_DIR --detached"
         #command = "bash /home/ken/ken-nipt/src/run_nipt_v3.sh -s SAMPLE_NAME -1 FQ1 -2 FQ2 -a AGE -l LABCODE -root /home/ken/ken-nipt -work WORK_DIR --detached -cf -ao"
-        command = "bash /home/ken/ken-nipt/src/run_nipt_v3.sh -s SAMPLE_NAME -1 FQ1 -2 FQ2 -a AGE -l LABCODE -root /home/ken/ken-nipt -work WORK_DIR --detached -cf"
+        command = "bash /home/ken/ken-nipt/src/run_nipt_manual.sh -s SAMPLE_NAME -1 FQ1 -2 FQ2 -a AGE -l LABCODE -root /home/ken/ken-nipt -work WORK_DIR --detached"
 
         logger.info(f"Starting NIPT daemon with:")
         logger.info(f"  Lab code: {args.labcode}")

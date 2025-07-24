@@ -350,6 +350,9 @@ def generate_html_template():
 
 def generate_file_button(file_path, button_text, button_class="btn", sample_id=None):
     """Generate file button HTML with proper path resolution"""
+    if isinstance(file_path, list):
+        return ""
+
     if file_path and file_path != "":
         # If sample_id is provided, prepend it to create relative path
         if sample_id and not file_path.startswith('http'):
@@ -360,6 +363,18 @@ def generate_file_button(file_path, button_text, button_class="btn", sample_id=N
             adjusted_path = file_path
         return f'<a href="{adjusted_path}" target="_blank" class="{button_class}">{button_text}</a>'
     return ""
+
+def generate_file_button_list(file_paths, button_text_prefix, button_class="btn", sample_id=None):
+    """Generate multiple file buttons if file_paths is a list"""
+    if isinstance(file_paths, list):
+        buttons = []
+        for idx, path in enumerate(file_paths):
+            label = f"{button_text_prefix} {idx+1}" if len(file_paths) > 1 else button_text_prefix
+            buttons.append(generate_file_button(path, label, button_class, sample_id))
+        return " ".join(buttons)
+    else:
+        return generate_file_button(file_paths, button_text_prefix, button_class, sample_id)
+
 
 def generate_lab_test_section(data):
     """Generate Lab Test section HTML"""
@@ -855,7 +870,8 @@ def generate_microdeletion_section(data, sample_id=None):
                         if link:
                             wcx_details += f'<br><a href="{link}" target="_blank" class="btn" style="font-size:0.8em;">Decipher</a>'
                         if image:
-                            image_button = generate_file_button(image, "Image", "btn btn-image", sample_id)
+                            # Kenneth : 250719 : this part comes as list type. startswith makes error
+                            image_button = generate_file_button_list(image, "Image", "btn btn-image", sample_id)
                             if image_button:
                                 wcx_details += f'<br><div style="font-size:0.8em;">{image_button}</div>'
 
