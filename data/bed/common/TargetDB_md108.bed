@@ -1,108 +1,108 @@
-1	50700001	84900000	CHROMOSOME 1p32-p31 DELETION SYNDROME;NFIA	loss	overlap	-	NFIA	61330931	61928460
-1	214500001	236600000	CHROMOSOME 1q41-q42 DELETION SYNDROME;BPNT1,PSEN2,DISP1,LBR	loss	overlap	-	BPNT1,PSEN2,DISP1,LBR	220230824	227115427
-1	236600001	249250621	1q43q44 terminal region (includes AKT3)	loss	overlap	-	AKT3	243651535	244014381
-2	55000001	64100000	2p15p16.1 region (includes BCL11A)	loss	overlap	-	BCL11A	60677655	60781602
-2	75000001	90500000	CHROMOSOME 2p12-p11.2 DELETION SYNDROME	loss	overlap	-	-	-	-
-2	110200001	114400000	2q13 recurrent region (includes BCL2L11)	gain	overlap	-	BCL2L11	111876955	111926021
-2	110200001	114400000	2q13 recurrent region (includes BCL2L11)	loss	overlap	-	BCL2L11	111876955	111926021
-2	169700001	178000000	CHROMOSOME 2q31.1 DUPLICATION SYNDROME;HOXD,MTX2	gain	overlap	-	HOXD,MTX2	177053396	177202753
+1	50700001	84900000	1p32-p31 deletion syndrome	loss	overlap	-	NFIA	61330931	61928460
+1	214500001	236600000	1q41-q42 deletion syndrome	loss	overlap	-	BPNT1,PSEN2,DISP1,LBR	220230824	227115427
+1	236600001	249250621	1q43-q44 deletion syndrome	loss	overlap	-	AKT3	243651535	244014381
+2	55000001	64100000	2p15-p16.1 deletion syndrome	loss	overlap	-	BCL11A	60677655	60781602
+2	75000001	90500000	2p12-p11.2 deletion syndrome	loss	overlap	-	-	-	-
+2	110200001	114400000	2q13 duplication syndrome	gain	overlap	-	BCL2L11	111876955	111926021
+2	110200001	114400000	2q13 deletion syndrome	loss	overlap	-	BCL2L11	111876955	111926021
+2	169700001	178000000	2q31.1 duplication syndrome	gain	overlap	-	HOXD,MTX2	177053396	177202753
 2	169700001	183000000	2q31.1 microdeletion syndrome	loss	overlap	-	-	-	-
-2	215300001	221500000	CHROMOSOME 2q35 DUPLICATION SYNDROME;IHH,NHEJ1	gain	overlap	-	IHH,NHEJ1	219919146	220025591
-3	1	16400000	CHROMOSOME 3pter-p25 DELETION SYNDROME	loss	overlap	-	-	-	-
-3	8700001	11800000	SETD5 SYNDROME;SETD5	loss	overlap	-	SETD5	9439299	9520924
-3	113500001	117300000	CHROMOSOME 3q13.31 DELETION SYNDROME;ZBTB20,DRD3,GAP43,LSAMP	loss	overlap	-	ZBTB20,DRD3,GAP43,LSAMP	113846427	117716439
-3	129200001	148900000	DANDY-WALKER MALFORMATION, INCLUDED, DWM, INCLUDED;FOXL2,ZIC1,ZIC4	loss	overlap	-	FOXL2,ZIC1,ZIC4	138663066	147228080
+2	215300001	221500000	2q35 duplication syndrome	gain	overlap	-	IHH,NHEJ1	219919146	220025591
+3	1	16400000	3pter-p25 deletion syndrome	loss	overlap	-	-	-	-
+3	8700001	11800000	3p25.3 deletion syndrome	loss	overlap	-	SETD5	9439299	9520924
+3	113500001	117300000	3q13.31 deletion syndrome	loss	overlap	-	ZBTB20,DRD3,GAP43,LSAMP	113846427	117716439
+3	129200001	148900000	Dandy-Walker syndrome (DWS)	loss	overlap	-	FOXL2,ZIC1,ZIC4	138663066	147228080
 3	160700001	182700000	3q26 microduplication syndrome	gain	overlap	-	-	-	-
-3	192300001	198022430	3q29 recurrent region (includes DLG1)	loss	overlap	-	DLG1	196769431	197026201
-4	76300001	88000000	CHROMOSOME 4q21 DELETION SYNDROME;PRKG2,RASGEF1B	loss	overlap	-	PRKG2,RASGEF1B	82008524	82965397
-4	107700001	114100000	AXENFELD-RIEGER SYNDROME, TYPE 1;PITX2	loss	overlap	-	PITX2	111538579	111563279
-5	28900001	42500000	CHROMOSOME 5p13 DUPLICATION SYNDROME;NIPBL,C5orf42,SLC1A3,NUP155	gain	overlap	-	-	-	-
-5	58900001	66700000	CHROMOSOME 5q12 DELETION SYNDROME;PDE4D	loss	overlap	-	PDE4D	58264865	59817947
-5	82800001	92300000	Chr 5q14.3 deletion syndrome (MADS BOX TRANSCRIPTION ENHANCER FACTOR 2,POLYPEPTIDE C);MEF2C, CETN3, GPR98	loss	overlap	-	MEF2C, CETN3, GPR98	88012934	90460254
-6	164500001	171115067	CHORDOMA,SUSCEPTIBILITY TO;T	gain	overlap	-	-	-	-
-5	168500001	180915260	5q35 recurrent (Sotos syndrome) region (includes NSD1)	loss	overlap	-	NSD1	176558831	176727214
+3	192300001	198022430	3q29 deletion syndrome	loss	overlap	-	DLG1	196769431	197026201
+4	76300001	88000000	4q21 deletion syndrome	loss	overlap	-	PRKG2,RASGEF1B	82008524	82965397
+4	107700001	114100000	Axenfeld-Rieger syndrome type 1 (RIEG1)	loss	overlap	-	PITX2	111538579	111563279
+5	28900001	42500000	5p13 duplication syndrome	gain	overlap	-	-	-	-
+5	58900001	66700000	5q12 deletion syndrome	loss	overlap	-	PDE4D	58264865	59817947
+5	82800001	92300000	5q14.3 deletion (proximal) syndrome	loss	overlap	-	MEF2C, CETN3, GPR98	88012934	90460254
+6	164500001	171115067	Chordoma	gain	overlap	-	-	-	-
+5	168500001	180915260	Sotos syndrome	loss	overlap	-	NSD1	176558831	176727214
 6	15200001	30400000	6p22 microdeletion syndrome	loss	overlap	-	-	-	-
-6	61000001	88000000	CHROMOSOME 6q11-q14 DELETION SYNDROME	loss	overlap	-	-	-	-
-6	139000001	161000000	CHROMOSOME 6q24-q25 DELETION SYNDROME	loss	overlap	-	-	-	-
-6	155500001	161000000	COFFIN-SIRIS SYNDROME 1 : CSS1;ARID1B	loss	overlap	-	ARID1B	157097154	157531913
+6	61000001	88000000	6q11-q14 deletion syndrome	loss	overlap	-	-	-	-
+6	139000001	161000000	6q24-q25 deletion syndrome	loss	overlap	-	-	-	-
+6	155500001	161000000	Coffin-Siris syndrome 1 (CSS1)	loss	overlap	-	ARID1B	157097154	157531913
 7	4500001	7300000	7p22.1 microduplication syndrome	gain	overlap	-	-	-	-
-7	37200001	43300000	GREIG CEPHALOPOLYSYNDACTYLY SYNDROME : GCPS;GLI3	loss	overlap	-	GLI3	4200054	42303699
+7	37200001	43300000	Greig cephalopolysyndactyly syndrome (GCPS)	loss	overlap	-	GLI3	4200054	42303699
 8	38300001	43100000	8p11.2 deletion syndrome	loss	overlap	-	-	-	-
-7	72200001	77500000	7q11.23 recurrent (Williams-Beuren syndrome) region (includes ELN)	gain	overlap	-	ELN	73442119	73484237
-7	72200001	77500000	7q11.23 recurrent distal region (includes HIP1, YWHAG)	loss	overlap	-	HIP1, YWHAG	75162619	75988308
-7	155100001	159138663	Schizophrenia 16,613959 (4);VIPR2	gain	overlap	-	VIPR2	158820866	158937559
-7	155100001	159138663	CURRARINO SYNDROME;MNX1	loss	overlap	-	MNX1	156786745	156803357
-8	6200001	12700000	8p23.1 recurrent region (includes GATA4)	loss	overlap	-	GATA4	11534468	11617511
+7	72200001	77500000	Williams-Beuren syndrome (WBS, duplication)	gain	overlap	-	ELN	73442119	73484237
+7	72200001	77500000	7q11.23 deletion (distal) syndrome	loss	overlap	-	HIP1, YWHAG	75162619	75988308
+7	155100001	159138663	7q36.3 duplication syndrome	gain	overlap	-	VIPR2	158820866	158937559
+7	155100001	159138663	Currarino syndrome	loss	overlap	-	MNX1	156786745	156803357
+8	6200001	12700000	8p23.1 deletion syndrome	loss	overlap	-	GATA4	11534468	11617511
 8	55500001	66000000	8q12 microduplication syndrome	gain	overlap	-	-	-	-
-8	93300001	99000000	NABLUS MASK-LIKE FACIAL SYNDROME;only cytoband	loss	overlap	-	-	-	-
-8	117700001	127300000	Trichorhinophalangeal syndrome type 2	loss	overlap	-	-	-	-
-9	1	49000000	CHROMOSOME 9p DELETION SYNDROME;TYRP1,FREM1	loss	overlap	-	TYRP1,FREM1	12685439	14910993
-9	1	2200000	46,XY SEX REVERSAL 4;DMRT1	loss	overlap	-	DMRT1	841690	969090
+8	93300001	99000000	Nablus mask-like facial syndrome (NMLFS)	loss	overlap	-	-	-	-
+8	117700001	127300000	Trichorhinophalangeal syndrome type 2 (TRPS2)	loss	overlap	-	-	-	-
+9	1	49000000	9p deletion syndrome	loss	overlap	-	TYRP1,FREM1	12685439	14910993
+9	1	2200000	9p24.3 deletion syndrome	loss	overlap	-	DMRT1	841690	969090
 9	36300001	41000000	9p13 microdeletion syndrome	loss	overlap	-	-	-	-
 9	125800001	133500000	9q33.3q34.11 microdeletion syndrome	loss	overlap	-	-	-	-
-9	130300001	133500000	EARLY INFANTILE EPILEPTIC ENCEPHALOPATHY-4 : EIEE4;STXBP1	loss	overlap	-	STXBP1	130341649	130458306
-9	137400001	141213431	KLEEFSTRA SYNDROME;EHMT1	loss	overlap	-	EHMT1	140513444	140764468
-10	6600001	17300000	DIGEORGE SYNDROME/VELOCARDIOFACIAL SYNDROME COMPLEX 2;only cytoband	loss	overlap	-	-	-	-
-10	18700001	38000000	Facial dysmorphism developmental delay-behavioral abnormalities syndrome due to 10p11.21p12.31 microdeletion	loss	overlap	-	-	-	-
-10	77700001	89500000	10q22.3q23.2 recurrent region (LCR-3/4-flanked) (includes BMPR1A)	loss	overlap	-	 BMPR1A	88515543	88692582
-10	97000001	105800000	SPLIT-HAND/FOOT MALFORMATION 3;FBXW4,LBX1,BTRC,POLL,SUFU,TLX1,FGF8	gain	overlap	-	-	-	-
-10	119100001	135534747	CHROMOSOME 10q26 DELETION SYNDROME;HMX2,HMX3,DOCK1	loss	overlap	-	HMX2,HMX3,DOCK1	124895486	129250781
-11	31000001	36400000	11p13 (WAGR syndrome) region	loss	overlap	-	-	-	-
-11	31000001	43500000	WILMS TUMOR,ANIRIDIA,GENITOURINARY ANOMALIES,MENTAL RETARDATION,AND OBESITY SYNDROME;T1,PAX6	loss	overlap	-	PAX6	31806327	31839509
-11	43500001	48800000	11p11.2 (Potocki-Shaffer syndrome) region (includes ALX4, EXT2)	loss	overlap	-	ALX4, EXT2	44117198	44331689
-11	65900001	75200000	11q13.2q13.4 recurrent region (includes SHANK2, FGFs)	loss	overlap	-	-	-	-
-11	102100001	110400000	11q22.2q22.3 microdeletion syndrome	loss	overlap	-	-	-	-
-11	110400001	121200000	THROMBOCYTOPENIA,PARIS-TROUSSEAU TYPE;only cytoband	loss	overlap	-	-	-	-
+9	130300001	133500000	Early infantile epileptic encephalopathy 4 (EIEE4)	loss	overlap	-	STXBP1	130341649	130458306
+9	137400001	141213431	Kleefstra syndrome 1 (KLEFS1)	loss	overlap	-	EHMT1	140513444	140764468
+10	6600001	17300000	DiGeorge (DSG2)	loss	overlap	-	-	-	-
+10	18700001	38000000	10p11.21-p12.31 microdeletion syndrome	loss	overlap	-	-	-	-
+10	77700001	89500000	10q22.3-q23.2 deletion syndrome	loss	overlap	-	 BMPR1A	88515543	88692582
+10	97000001	105800000	Split-hand/foot malformation 3 (SHFM3)	gain	overlap	-	-	-	-
+10	119100001	135534747	10q26 deletion syndrome	loss	overlap	-	HMX2,HMX3,DOCK1	124895486	129250781
+11	31000001	36400000	WAGR syndrome	loss	overlap	-	-	-	-
+11	31000001	43500000	WAGRO syndrome	loss	overlap	-	PAX6	31806327	31839509
+11	43500001	48800000	Potocki-Shaffer syndrome	loss	overlap	-	ALX4, EXT2	44117198	44331689
+11	65900001	75200000	11q13.2-q13.4 deletion syndrome	loss	overlap	-	-	-	-
+11	102100001	110400000	11q22.2-q22.3 microdeletion syndrome	loss	overlap	-	-	-	-
+11	110400001	121200000	11q23 deletion syndrome	loss	overlap	-	-	-	-
 12	21300001	26500000	12p12.1 microdeletion syndrome	loss	overlap	-	-	-	-
 12	58100001	67700000	12q14 microdeletion syndrome	loss	overlap	-	-	-	-
 12	67700001	75700000	12q15q21.1 microdeletion syndrome	loss	overlap	-	-	-	-
-13	40100001	55300000	CHROMOSOME 13q14 DELETION SYNDROME;ESD,NUFIP1,HTR2A,PCDH8	loss	overlap	-	-	-	-
-14	17600001	58100000	CHROMOSOME 14q11-q22 DELETION SYNDROME;PAX9,SUPT16H,CHD8,RALGAPA1,FOXG1,ARHGAP5	loss	overlap	-	-	-	-
-14	50900001	58100000	FRIAS SYNDROME;BMP4	loss	overlap	-	-	-	-
-14	73800001	91900000	14q24.1q24.3 microdeletion syndrome	loss	overlap	-	-	-	-
-15	31200001	33600000	15q13.3 recurrent region (BP4-BP5) (includes CHRNA7)	loss	overlap	-	CHRNA7	32215641	32465219
-15	31200001	33600000	15q13.3 recurrent region (BP4-BP5) (includes CHRNA7)	gain	overlap	-	CHRNA7	32215641	32465219
+13	40100001	55300000	13q14 deletion syndrome	loss	overlap	-	-	-	-
+14	17600001	58100000	14q11-q22 deletion syndrome	loss	overlap	-	-	-	-
+14	50900001	58100000	Frias syndrome	loss	overlap	-	-	-	-
+14	73800001	91900000	14q24.1-q24.3 microdeletion syndrome	loss	overlap	-	-	-	-
+15	31200001	33600000	15q13.3 deletion syndrome {BP4 to BP5} (loss)	loss	overlap	-	CHRNA7	32215641	32465219
+15	31200001	33600000	15q13.3 deletion syndrome {BP4 to BP5} (gain)	gain	overlap	-	CHRNA7	32215641	32465219
 15	33600001	40100000	15q14 microdeletion syndrome	loss	overlap	-	-	-	-
-15	78300001	89100000	15q25.2 recurrent region (LCR B-C, proximal)	loss	overlap	-	-	-	-
-15	89100001	102531392	CHROMOSOME 15q26-qter DELETION SYNDROME;IGF1R	loss	overlap	-	-	-	-
-16	1	7900000	POLYCYSTIC KIDNEY DISEASE,INFANTILE SEVERE,WITH TUBEROUS SCLEROSIS;PKD1,TSC2	loss	overlap	-	PKD1,TSC2	2097968	2185899
-16	1	7900000	ALPHA-THALASSEMIA/MENTAL RETARDATION SYNDROME,CHROMOSOME 16-RELATED;HBA1,HBA2	loss	overlap	-	HBA1,HBA2	222875	227521
-16	1	7900000	16p13.3 region (includes CREBBP)	gain	overlap	-	CREBBP	3775055	3930714
-16	14800001	16800000	16p13.11 recurrent region (deletion)	loss	overlap	-	-	-	-
-16	14800001	16800000	16p13.11 recurrent region (duplication)	gain	overlap	-	-	-	-
-16	21200001	24200000	16p12.2 recurrent region (includes EEF2K, CDR2) (proximal region)	loss	overlap	-	CDR2	22357257	22448486
-16	21200001	34600000	16p11.2p12.2 microduplication syndrome	gain	inside	-	-	-	-
-16	66700001	74100000	CHROMOSOME 16q22 DELETION SYNDROME;CBFB	loss	overlap	-	CBFB	67062887	67134961
-17	16000001	22200000	17p11.2 recurrent (SMS/PLS) region (includes RAI1)	loss	overlap	-	RAI1	17584772	17714767
-17	10700001	16000000	17p12 recurrent (HNPP/CMT1A) region (includes PMP22)	loss	overlap	-	PMP22	15133090	15175609
-17	1	3300000	17p13.3 (Miller-Dieker syndrome) region (includes YWHAE and PAFAH1B1)	loss	overlap	-	YWHAE, PAFAH1B1	1247569	2588909
-17	1	3300000	17p13.3 (Miller-Dieker syndrome) region (includes YWHAE and PAFAH1B1)	gain	overlap	-	YWHAE, PAFAH1B1	1247569	2588909
-17	1	10700000	CHROMOSOME 17p13.1 DELETION SYNDROME;KCNAB3,GUCY2D,TRAPPC1,MPDU1,FXR2,EFNB3	loss	overlap	-	-	-	-
-17	1	10700000	CHROMOSOME 17p13.3, TELOMERIC, DUPLICATION SYNDROME;BHLHA9,ABR	gain	overlap	-	BHLHA9,ABR	906759	1175109
-17	10700001	22200000	YUAN-HAREL-LUPSKI SYNDROME;PMP22,RAI1	gain	overlap	-	PMP22	15133090	15175609
-17	10700001	16000000	17p12 recurrent (HNPP/CMT1A) region (includes PMP22)	gain	overlap	-	PMP22	15133090	15175609
-17	31800001	38100000	17q12 recurrent (RCAD syndrome) region (includes HNF1B)	loss	overlap	-	HNF1B	36046434	36105050
-17	40900001	50200000	17q21.3 recurrent region (includes KANSL1)	loss	overlap	-	KANSL1	44107282	44302755
-17	57600001	61100000	17q23.1q23.2 recurrent region (includes TBX2, TBX4)	loss	overlap	-	TBX2, TBX4	59477204	59562471
-18	1	17200000	CHROMOSOME 18p DELETION SYNDROME;.	loss	overlap	-	-	-	-
-18	1	17200000	TETRASOMY 18p;.	gain	overlap	-	-	-	-
-18	17200001	78077248	CHROMOSOME 18q DELETION SYNDROME;SMAD4, TCF4, TSHZ1	loss	overlap	-	-	-	-
+15	78300001	89100000	15q25.2 deletion (proximal) syndrome	loss	overlap	-	-	-	-
+15	89100001	102531392	15q26-qter deletion syndrome	loss	overlap	-	-	-	-
+16	1	7900000	Polycystic kidney disease, infantile severe, with tuberous sclerosis (PKDTS)	loss	overlap	-	PKD1,TSC2	2097968	2185899
+16	1	7900000	Alpha-thalassemia/intellectual disability syndrome, chromosome 16-related (ATR-16) syndrome	loss	overlap	-	HBA1,HBA2	222875	227521
+16	1	7900000	Rubinstein-Taybi syndrome	gain	overlap	-	CREBBP	3775055	3930714
+16	14800001	16800000	16p13.11 deletion syndrome	loss	overlap	-	-	-	-
+16	14800001	16800000	16p13.11 duplication syndrome	gain	overlap	-	-	-	-
+16	21200001	24200000	16p12.2 deletion (proximal) syndrome	loss	overlap	-	CDR2	22357257	22448486
+16	21200001	34600000	16p11.2-p12.2 microduplication syndrome	gain	inside	-	-	-	-
+16	66700001	74100000	16q22 deletion syndrome	loss	overlap	-	CBFB	67062887	67134961
+17	16000001	22200000	Smith-Magenis syndrome	loss	overlap	-	RAI1	17584772	17714767
+17	10700001	16000000	17p12 deletion syndrome	loss	overlap	-	PMP22	15133090	15175609
+17	1	3300000	Miller-Dieker lissencephaly syndrome (MDLS) (loss)	loss	overlap	-	YWHAE, PAFAH1B1	1247569	2588909
+17	1	3300000	Miller-Dieker lissencephaly syndrome (MDLS) (gain)	gain	overlap	-	YWHAE, PAFAH1B1	1247569	2588909
+17	1	10700000	17p13.1 deletion syndrome	loss	overlap	-	-	-	-
+17	1	10700000	17p13.3 telomeric duplication syndrome	gain	overlap	-	BHLHA9,ABR	906759	1175109
+17	10700001	22200000	Yuan-Harel-Lupski syndrome (YUHAL)	gain	overlap	-	PMP22	15133090	15175609
+17	10700001	16000000	17p12 duplication syndrome	gain	overlap	-	PMP22	15133090	15175609
+17	31800001	38100000	17q12 deletion syndrome	loss	overlap	-	HNF1B	36046434	36105050
+17	40900001	50200000	17q21.31 deletion syndrome	loss	overlap	-	KANSL1	44107282	44302755
+17	57600001	61100000	17q23.1-q23.2 deletion syndrome	loss	overlap	-	TBX2, TBX4	59477204	59562471
+18	1	17200000	18p deletion syndrome	loss	overlap	-	-	-	-
+18	1	17200000	Tetrasomy 18p syndrome	gain	overlap	-	-	-	-
+18	17200001	78077248	18q deletion syndrome	loss	overlap	-	-	-	-
 19	32400001	35500000	19q13.11 microdeletion syndrome	loss	overlap	-	-	-	-
-19	1	20000000	PIGMENTED NODULAR ADRENOCORTICAL DISEASE,PRIMARY,4;PRKACA	gain	overlap	-	PRKACA	14202500	14228896
+19	1	20000000	19p13 duplication syndrome	gain	overlap	-	PRKACA	14202500	14228896
 20	1	5100000	20p13 microdeletion syndrome	loss	overlap	-	-	-	-
-21	31500001	37800000	21q22.11q22.12 microdeletion syndrome	loss	overlap	-	-	-	-
-22	17900001	22200000	22q11.2 recurrent region (central, B/C-D) (includes CRKL)	gain	overlap	-	CRKL	21271695	21308035
-22	17900001	23500000	22q11.2 recurrent region (distal type I, D-E/F)	loss	overlap	-	-	-	-
-22	37600001	51304566	PHELAN MCDERMID SYNDROME;SHANK3	loss	overlap	-	SHANK3	51112836	51171640
-22	37600001	51304566	CHROMOSOME 22q13 DUPLICATION SYNDROME;SHANK3	gain	overlap	-	SHANK3	51112836	51171640
-X	6000001	9500000	Xp22.31 recurrent region (includes STS)	loss	overlap	-	STS	7065278	7772399
-X	29300001	31500000	Xp21.2 region (includes NR0B1)	gain	overlap	-	-	-	-
-X	46400001	49800000	Xp11.22 region (includes HUWE1)	gain	overlap	-	-	-	-
-X	46400001	49800000	Xp11.23 region (includes MAOA and MAOB)	loss	overlap	-	MAOA, MAOB	43514155	43741696
-X	46400001	54800000	Xp11.22p11.23 recurrent region (includes SHROOM4)	gain	overlap	-	-	-	-
-X	42400001	46400000	X-linked intellectual disability	loss	overlap	-	-	-	-
+21	31500001	37800000	21q22.11-q22.12 microdeletion syndrome	loss	overlap	-	-	-	-
+22	17900001	22200000	22q11.2 deletion syndrome (LCR22 B/C-D)	gain	overlap	-	CRKL	21271695	21308035
+22	17900001	23500000	22q11.2 deletion syndrome (distal, D-E/F)	loss	overlap	-	-	-	-
+22	37600001	51304566	22q13 deletion syndrome	loss	overlap	-	SHANK3	51112836	51171640
+22	37600001	51304566	22q13 duplication syndrome	gain	overlap	-	SHANK3	51112836	51171640
+X	6000001	9500000	Xp22.31 microdeletion syndrome	loss	overlap	-	STS	7065278	7772399
+X	29300001	31500000	Xp21.2 microduplication syndrome	gain	overlap	-	-	-	-
+X	46400001	49800000	Xp11.22 duplication syndrome	gain	overlap	-	-	-	-
+X	46400001	49800000	Xp11.23 microdeletion syndrome	loss	overlap	-	MAOA, MAOB	43514155	43741696
+X	46400001	54800000	Xp11.22-p11.23 duplication syndrome	gain	overlap	-	-	-	-
+X	42400001	46400000	Xp11.3 deletion syndrome	loss	overlap	-	-	-	-
 X	24900001	37600000	Xp21 microdeletion syndrome	loss	overlap	-	-	-	-
 X	60600001	155270560	Xq21 microdeletion syndrome	loss	overlap	-	-	-	-
-X	103700001	108700000	AMME COMPLEX	loss	overlap	-	-	-	-
-X	142100001	155270560	Xq27.3q28 duplication syndrome	gain	overlap	-	-	-	-
-X	147100001	155270560	Xq28 recurrent region (int22h1/int22h2-flanked) (includes RAB39B)	loss	overlap	-	RAB39B	154487520	154493776
+X	103700001	108700000	Xq22.3 telomeric deletion syndrome	loss	overlap	-	-	-	-
+X	142100001	155270560	Xq27.3-q28 duplication syndrome	gain	overlap	-	-	-	-
+X	147100001	155270560	Xq28 deletion syndrome	loss	overlap	-	RAB39B	154487520	154493776

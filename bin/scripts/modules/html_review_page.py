@@ -906,6 +906,171 @@ def generate_microdeletion_section(data, sample_id=None):
 
 def generate_quality_control_section(data, sample_id=None):
     """Generate Quality Control section HTML"""
+    # 올바른 데이터 접근: NIPT 안의 quality_control
+    nipt_data = data.get('NIPT', {})
+    qc_data = nipt_data.get('quality_control', {})
+
+    html = """
+    <div class="section">
+        <div class="section-header">
+            <h2 class="section-title">🎯 Quality Control Results</h2>
+        </div>
+        <div class="section-content">
+    """
+
+    # Sequencing Metrics
+    sequencing_metrics = qc_data.get('sequencing_metrics', {})
+    if sequencing_metrics:
+        html += """
+            <div class="sub-section">
+                <h3 class="sub-title">Sequencing Metrics</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Unit</th>
+                            <th>Threshold</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        """
+
+        metric_labels = {
+            'total_reads': 'Total Reads',
+            'mapped_reads': 'Mapped Reads',
+            'mapping_rate': 'Mapping Rate',
+            'duplication_rate': 'Duplication Rate',
+            'mean_mapping_quality': 'Mean Mapping Quality',
+            'mean_coverage': 'Mean Coverage',
+            'gc_content': 'GC Content'
+        }
+
+        for key, label in metric_labels.items():
+            if key in sequencing_metrics:
+                metric = sequencing_metrics[key]
+                value = metric.get('value', 'N/A')
+                unit = metric.get('unit', '')
+                threshold = metric.get('threshold', 'N/A')
+                status = metric.get('status', 'N/A')
+                status_class = 'status-pass' if status == 'PASS' else 'status-fail'
+
+                # Format large numbers - 수정된 부분
+                try:
+                    # 문자열인 경우 (예: "0.3662X") 그대로 사용
+                    if isinstance(value, str):
+                        formatted_value = value
+                    elif isinstance(value, (int, float)) and value > 1000:
+                        if value > 1000000:
+                            formatted_value = f"{value/1000000:.1f}M"
+                        else:
+                            formatted_value = f"{value/1000:.1f}K"
+                    else:
+                        formatted_value = str(value)
+                except Exception:
+                    formatted_value = str(value)
+
+                html += f"""
+                        <tr>
+                            <td>{label}</td>
+                            <td>{formatted_value}</td>
+                            <td>{unit}</td>
+                            <td>{threshold}</td>
+                            <td><span class="{status_class}">{status}</span></td>
+                        </tr>
+                """
+
+        html += """
+                    </tbody>
+                </table>
+            </div>
+        """
+
+    # Analysis QC
+    analysis_qc = qc_data.get('analysis_qc', {})
+    if analysis_qc:
+        html += """
+            <div class="sub-section">
+                <h3 class="sub-title">Analysis Quality Control</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                            <th>Unit</th>
+                            <th>Threshold</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        """
+
+        analysis_labels = {
+            'fetal_fraction_yff': 'Fetal Fraction (YFF)',
+            'fetal_fraction_seqff': 'Fetal Fraction (seqFF)',
+            'ff_ratio': 'FF Ratio',
+            'sample_bias_qc': 'Sample Bias QC'
+        }
+
+        for key, label in analysis_labels.items():
+            if key in analysis_qc:
+                param = analysis_qc[key]
+                value = param.get('value', 'N/A')
+                unit = param.get('unit', '')
+                threshold = param.get('threshold', 'N/A')
+                status = param.get('status', 'N/A')
+                status_class = 'status-pass' if status == 'PASS' else 'status-fail'
+
+                html += f"""
+                        <tr>
+                            <td>{label}</td>
+                            <td>{value}</td>
+                            <td>{unit}</td>
+                            <td>{threshold}</td>
+                            <td><span class="{status_class}">{status}</span></td>
+                        </tr>
+                """
+
+        html += """
+                    </tbody>
+                </table>
+            </div>
+        """
+
+    # QC Files
+    qc_files = qc_data.get('qc_files', {})
+    if qc_files:
+        html += """
+            <div class="sub-section">
+                <h3 class="sub-title">QC Reports</h3>
+                <div class="button-group">
+        """
+
+        file_buttons = [
+            ('Fastqc_R1_report', 'FastQC R1 Report', 'btn btn-report'),
+            ('Fastqc_R2_report', 'FastQC R2 Report', 'btn btn-report'),
+            ('Qualimap_report', 'Qualimap Report', 'btn btn-report')
+        ]
+
+        for file_key, button_text, button_class in file_buttons:
+            file_path = qc_files.get(file_key)
+            if file_path:
+                html += generate_file_button(file_path, button_text, button_class, sample_id)
+
+        html += """
+                </div>
+            </div>
+        """
+
+    html += """
+        </div>
+    </div>
+    """
+    return html
+
+def generate_quality_control_section_old(data, sample_id=None):
+    """Generate Quality Control section HTML"""
     qc_data = data.get('quality_control', {})
     
     html = """

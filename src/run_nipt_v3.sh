@@ -130,8 +130,12 @@ fi
 # 디렉토리 생성
 #mkdir -p "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR/bed" "$HOST_OUTPUT_DIR"
 #chown -R ken:ken "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR" "$HOST_OUTPUT_DIR"
-mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
-chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+#mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+#chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+if [ ! -d "$HOST_ANALYSIS_DIR" ] || [ ! -d "$HOST_LOG_DIR" ] || [ ! -d "$HOST_OUTPUT_DIR" ]; then
+  mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+  chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+fi
 
 if ! $ALGORITHM_ONLY; then
     if [[ -z "$FASTQ_R1" || -z "$FASTQ_R2" ]]; then
