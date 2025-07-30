@@ -130,12 +130,8 @@ fi
 # 디렉토리 생성
 #mkdir -p "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR/bed" "$HOST_OUTPUT_DIR"
 #chown -R ken:ken "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR" "$HOST_OUTPUT_DIR"
-#mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
-#chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
-if [ ! -d "$HOST_ANALYSIS_DIR" ] || [ ! -d "$HOST_LOG_DIR" ] || [ ! -d "$HOST_OUTPUT_DIR" ]; then
-  mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
-  chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
-fi
+mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
 
 if ! $ALGORITHM_ONLY; then
     if [[ -z "$FASTQ_R1" || -z "$FASTQ_R2" ]]; then
@@ -163,7 +159,7 @@ fi
 
 # Docker 실행
 echo "=== Launching Docker container ==="
-CONTAINER_ID=$(docker run --rm -d \
+CONTAINER_ID=$(docker run -d \
     --user "$(id -u):$(id -g)" \
     --name "$SAMPLE_NAME" \
     -e TZ=Asia/Seoul \
@@ -221,8 +217,7 @@ else
     docker wait "$SAMPLE_NAME"
     CONTAINER_EXIT_CODE=$?
 
-    #COMPLETED_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}.completed"
-    JSON_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.json"
+    COMPLETED_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}.completed"
     FAILED_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}.failed"
     PROGRESS_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}_progress.txt"
     ANALYSIS_LOG_FILE="$HOST_ANALYSIS_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}_analysis.log"
@@ -230,7 +225,7 @@ else
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     if [ $CONTAINER_EXIT_CODE -eq 0 ]; then
-        if [ -f "$JSON_FILE" ]; then
+        if [ -f "$COMPLETED_FILE" ]; then
             echo "Pipeline completed successfully: $SAMPLE_NAME"
             # BAM 정리 모드가 켜져 있으면 cleanup_bam.sh 호출
             if [ "$REMOVE_BAMS" = true ]; then

@@ -84,6 +84,9 @@ RUN apt-get update && apt-get install -y wget && \
     wget -O miniconda.sh https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
     bash miniconda.sh -b -p /opt/miniconda && \
     rm miniconda.sh && \
+    /opt/miniconda/bin/conda config --set always_yes yes && \
+    /opt/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    /opt/miniconda/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
     /opt/miniconda/bin/conda install -c bioconda qualimap -y && \
     ln -s /opt/miniconda/bin/qualimap /usr/local/bin/qualimap
 

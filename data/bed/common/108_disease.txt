@@ -1,0 +1,108 @@
+1p32-p31 deletion syndrome
+1q41-q42 deletion syndrome
+1q43-q44 deletion syndrome
+2p15-p16.1 deletion syndrome
+2p12-p11.2 deletion syndrome
+2q13 duplication syndrome
+2q13 deletion syndrome
+2q31.1 duplication syndrome
+2q31.1 microdeletion syndrome
+2q35 duplication syndrome
+3pter-p25 deletion syndrome
+3p25.3 deletion syndrome
+3q13.31 deletion syndrome
+Dandy-Walker syndrome (DWS)
+3q26 microduplication syndrome
+3q29 deletion syndrome
+4q21 deletion syndrome
+Axenfeld-Rieger syndrome type 1 (RIEG1)
+5p13 duplication syndrome
+5q12 deletion syndrome
+5q14.3 deletion (proximal) syndrome
+Chordoma
+Sotos syndrome
+6p22 microdeletion syndrome
+6q11-q14 deletion syndrome
+6q24-q25 deletion syndrome
+Coffin-Siris syndrome 1 (CSS1)
+7p22.1 microduplication syndrome
+Greig cephalopolysyndactyly syndrome (GCPS)
+8p11.2 deletion syndrome
+Williams-Beuren syndrome (WBS, duplication)
+7q11.23 deletion (distal) syndrome
+7q36.3 duplication syndrome
+Currarino syndrome
+8p23.1 deletion syndrome
+8q12 microduplication syndrome
+Nablus mask-like facial syndrome (NMLFS)
+Trichorhinophalangeal syndrome type 2 (TRPS2)
+9p deletion syndrome
+9p24.3 deletion syndrome
+9p13 microdeletion syndrome
+9q33.3q34.11 microdeletion syndrome
+Early infantile epileptic encephalopathy 4 (EIEE4)
+Kleefstra syndrome 1 (KLEFS1)
+DiGeorge (DSG2)
+10p11.21-p12.31 microdeletion syndrome
+10q22.3-q23.2 deletion syndrome
+Split-hand/foot malformation 3 (SHFM3)
+10q26 deletion syndrome
+WAGR syndrome
+WAGRO syndrome
+Potocki-Shaffer syndrome
+11q13.2-q13.4 deletion syndrome
+11q22.2-q22.3 microdeletion syndrome
+11q23 deletion syndrome
+12p12.1 microdeletion syndrome
+12q14 microdeletion syndrome
+12q15q21.1 microdeletion syndrome
+13q14 deletion syndrome
+14q11-q22 deletion syndrome
+Frias syndrome
+14q24.1-q24.3 microdeletion syndrome
+15q13.3 deletion syndrome {BP4 to BP5} (loss)
+15q13.3 deletion syndrome {BP4 to BP5} (gain)
+15q14 microdeletion syndrome
+15q25.2 deletion (proximal) syndrome
+15q26-qter deletion syndrome
+Polycystic kidney disease, infantile severe, with tuberous sclerosis (PKDTS)
+Alpha-thalassemia/intellectual disability syndrome, chromosome 16-related (ATR-16) syndrome
+Rubinstein-Taybi syndrome
+16p13.11 deletion syndrome
+16p13.11 duplication syndrome
+16p12.2 deletion (proximal) syndrome
+16p11.2-p12.2 microduplication syndrome
+16q22 deletion syndrome
+Smith-Magenis syndrome
+17p12 deletion syndrome
+Miller-Dieker lissencephaly syndrome (MDLS) (loss)
+Miller-Dieker lissencephaly syndrome (MDLS) (gain)
+17p13.1 deletion syndrome
+17p13.3 telomeric duplication syndrome
+Yuan-Harel-Lupski syndrome (YUHAL)
+17p12 duplication syndrome
+17q12 deletion syndrome
+17q21.31 deletion syndrome
+17q23.1-q23.2 deletion syndrome
+18p deletion syndrome
+Tetrasomy 18p syndrome
+18q deletion syndrome
+19q13.11 microdeletion syndrome
+19p13 duplication syndrome
+20p13 microdeletion syndrome
+21q22.11-q22.12 microdeletion syndrome
+22q11.2 deletion syndrome (LCR22 B/C-D)
+22q11.2 deletion syndrome (distal, D-E/F)
+22q13 deletion syndrome
+22q13 duplication syndrome
+Xp22.31 microdeletion syndrome
+Xp21.2 microduplication syndrome
+Xp11.22 duplication syndrome
+Xp11.23 microdeletion syndrome
+Xp11.22-p11.23 duplication syndrome
+Xp11.3 deletion syndrome
+Xp21 microdeletion syndrome
+Xq21 microdeletion syndrome
+Xq22.3 telomeric deletion syndrome
+Xq27.3-q28 duplication syndrome
+Xq28 deletion syndrome

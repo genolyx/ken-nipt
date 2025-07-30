@@ -2370,7 +2370,8 @@ def calculate_fetal_fraction(sample_name, config, paths):
     ff_results["SeqFF"] = {"value": seqff_result["seqff_value"]}
 
     # 250610 : Add the modified seqFF
-    ff_results["M-SeqFF"] = {"value": seqff_result["seqff_value"] + 4.0}
+    #ff_results["M-SeqFF"] = {"value": seqff_result["seqff_value"] + 4.0}
+    ff_results["M-SeqFF"] = {"value": round(seqff_result["seqff_value"] + 4.0, 2)}
 
     df_ff = pd.DataFrame.from_dict(ff_results, orient="index")
     df_ff.to_csv(ff_output_txt, sep="\t", index=True, header=True)

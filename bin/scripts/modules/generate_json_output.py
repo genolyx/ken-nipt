@@ -890,6 +890,7 @@ def read_chromosome_analysis_from_ezd_prizm_detailed(
             "UAR(%)": row["UAR"] if pd.notna(row["UAR"]) else None,
             "Z-score threshold": z_threshold,
             "UAR threshold": uar_threshold,
+            "checked": ezd_detection == "High Risk" or prizm_detection == "High Risk",
         }
 
     logger.info(f"Processed {len(chromosomes)} chromosomes from EZD + PRIZM data")
@@ -1033,6 +1034,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type="
                         results[md_key]["detected_region_link"]["WC"] = (
                             f"https://deciphergenomics.org/browser#q/grch37:{detected_region}"
                         )
+                        results[md_key]["checked"] = True
                         break
 
         # WCX 파일 처리
@@ -1055,6 +1057,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type="
                         results[md_key]["image"]["WCX"] = (
                             (f"Output_WCX/chr_plots/{data_src}/chr{row['chr']}.png"),
                         )
+                        results[md_key]["checked"] = True
                         wcx_chr_list.append(row["chr"])
                         break
 
@@ -1121,7 +1124,7 @@ def process_md_detection(wc_file, wcx_file, data_src, target_bed_file, md_type="
                     "z_score": {"WC": None, "WCX": None},
                     "detected_region_link": {"WC": "", "WCX": ""},
                     "image": {"WC": "", "WCX": ""},
-                    "checked": False,
+                    "checked": True,
                 }
 
                 # WC 데이터 채우기
@@ -1341,7 +1344,7 @@ def build_nipt_json(
             "fetal_fraction_yff": f"{final_results['fetal_fraction_yff']}",
             "fetal_fraction_seqff": f"{final_results['fetal_fraction_seqff']}",
             "ff_ratio": str(final_results["ff_ratio"]),
-            "sample_bias": final_results["sample_bias_qc"],
+            #"sample_bias": final_results["sample_bias_qc"],
             "fetal_gender": final_results["fetal_gender"],
             # "trisomy_result": "Low Risk" if final_results['final_trisomy_result'] == ["Low Risk"] else "High Risk",
             # "md_result": "Low Risk" if final_results['md_results'] == ["Low Risk"] else "High Risk"
@@ -1357,6 +1360,12 @@ def build_nipt_json(
     # 250610 : Trisomy detected list added.
     # put final_trisomy_result data
     # high_risk_results = [f"{entry['disease_name']} {entry['result']}" for entry in trisomy_results if entry["result"] == "High Risk"]
+
+    # ---------------------------------------------------------------
+    # 250716 : 아래 코드들을 참고해서 PRIZM detection에도 사용하자.
+    # 일단은 EZD 위주로 trisomy_results, reviewer1,2 result를 채우고
+    # PRIZM은 무시하자.
+    # ---------------------------------------------------------------
     high_risk_results = [
         f"{entry['disease_name']}"
         for entry in trisomy_results
@@ -1372,7 +1381,7 @@ def build_nipt_json(
         "High Risk" if high_risk_results else "Low Risk"
     )
 
-    Trisoy_LowRisk_comment = "Result consistent with two copies of autosomes and sex chromosomes."
+    Trisoy_LowRisk_comment = "The results are consistent with a low risk pregnancy."
     if not high_risk_results:
         output[APPID]["review"]["reviewer1"]["Trisomy_comment"] = Trisoy_LowRisk_comment
     
@@ -1427,6 +1436,38 @@ def build_nipt_json(
             "result_table": result_table,
         }
 
+        # -----------------------------------------------------------------------
+        # 250716 : Add PRIZM result to "trisomy_results" and "final_results"
+        '''
+        if group in {"orig", "fetus"}:
+            chromosome_to_item = {
+                "Chromosome 21": "T21",
+                "Chromosome 18": "T18",
+                "Chromosome 13": "T13",
+                "Chromosome 9":  "T9",
+                "Chromosome 16": "T16",
+                "Chromosome 22": "T22"
+            }
+
+            # PRIZM에서는 일단 chrX, Y Disease는 보고하지 말자.
+            excluded_chromosomes = {"Chromosome X", "Chromosome Y"}
+
+            for chrom, result_info in prizm_results.items():
+                if chrom in excluded_chromosomes:
+                    continue  # X, Y는 무시
+
+                if result_info.get("PRIZM Detection") == "High Risk":
+                    # 주요 염색체(T21~T22)인지 확인
+                    item_code = chromosome_to_item.get(chrom, "other")
+
+                    for result in output[APPID]["trisomy_results"]:
+                        if result["item"] == item_code:
+                            result["result"] = "High Risk"
+                            break 
+        '''
+        # -----------------------------------------------------------------------
+
+
     # 4. Build md_results (summary table)
     md_results_table = []
 
@@ -1447,19 +1488,19 @@ def build_nipt_json(
             {
                 "item": "other_md108",
                 "location": "other",
-                "disease_name": "108 md syndrome",
+                "disease_name": "other_md108",
                 "result": "Low Risk",
             },
             {
                 "item": "other_md320",
                 "location": "other",
-                "disease_name": "320 md syndrome",
+                "disease_name": "other_md320",
                 "result": "Low Risk",
             },
             {
                 "item": "other_md87",
                 "location": "other",
-                "disease_name": "87 md syndrome",
+                "disease_name": "other_md87",
                 "result": "Low Risk",
             },
         ]
@@ -1486,7 +1527,7 @@ def build_nipt_json(
         "High Risk" if len(detected_md_output) > 0 else "Low Risk"
     )
 
-    MD_LowRisk_comment = "Results consistent with low risk of microdeletion/duplications in the regions of interest."
+    MD_LowRisk_comment = "The results are consistent with low risk of microdeletion/duplications in the regions of interest."
     if len(detected_md_output) == 0:
         output[APPID]["review"]["reviewer1"]["MD_comment"] = MD_LowRisk_comment
 
@@ -1502,11 +1543,15 @@ def build_nipt_json(
             row["result"] = "High Risk"
 
     # 6. Build quality control section
+    Final_QC_result = "PASS"
+    No_Call_reason = [] 
     try:
         qc_file = f"{analysis_dir}/{sample_name}/Output_QC/{sample_name}.qc.filter.txt"
         logger.info(f"Looking for QC file: {qc_file}")
 
         if not os.path.exists(qc_file):
+            Final_QC_result = "FAIL"
+            No_Call_reason.append(f"QC file not found: {qc_file}")
             logger.warning(f"QC file not found: {qc_file}")
             logger.warning("Using default QC values")
 
@@ -1626,6 +1671,24 @@ def build_nipt_json(
                                 "threshold": threshold,
                             }
 
+                            if row.status != "PASS":
+                                Final_QC_result = "FAIL"
+
+                                fail_reason_map = {
+                                    "total_reads": "Total reads are less than 10 Million",
+                                    "mapped_reads": "Mapped reads are less than 9.5 Million",
+                                    "mapping_rate": "Mapping rate is below 85%",
+                                    "duplication_rate": "Duplication rate is over 40%",
+                                    "mean_mapping_quality": "Quality is below 20",
+                                    "mean_coverage": "Coverage is below 0.1X",
+                                    "gc_content": "GC content % is out of range (33-55%)",
+                                }
+
+                                fail_reason = fail_reason_map.get(json_key)
+                                if fail_reason and fail_reason not in No_Call_reason:
+                                    No_Call_reason.append(fail_reason)
+
+
                     except Exception as e:
                         logger.error(f"Error processing QC metric {qc_key}: {e}")
                         continue
@@ -1637,58 +1700,85 @@ def build_nipt_json(
         # Analysis QC
         analysis_qc = {}
 
-        # 250613 : To get orig_biqc result
-        prizm_qc_file = f"{analysis_dir}/{sample_name}/Output_PRIZM/orig/{sample_name}.of_orig.prizm.qc.txt"
-        logger.info(f"Looking for PRIZM QC file: {prizm_qc_file}")
-
         qc_config = config.get("QC", {})
         orig_biqc = qc_config.get("orig_biqc", 4.0)
+        yff_threshold = qc_config.get("YFF", 4.0)
+        seqff_threshold = qc_config.get("seqFF", 4.0)
 
         try:
+            prizm_qc_file = f"{analysis_dir}/{sample_name}/Output_PRIZM/orig/{sample_name}.of_orig.prizm.qc.txt"
             with open(prizm_qc_file, "r") as qc_f:
                 parts = qc_f.read().strip().split()
-                sample_bias_value = round(float(parts[0]), 3)
+                sample_bias_val = round(float(parts[0]), 3)
                 sample_bias_status = parts[1]
 
+            if sample_bias_status != "PASS":
+                Final_QC_result = "FAIL"
+                No_Call_reason.append(f"Sample bias is greater than {orig_biqc}")
+
+            logger.info(f"sample_bias_status : {sample_bias_status}")
+
+            yff_val = final_results.get("fetal_fraction_yff", "N/A")
+            if yff_val != "N/A":
+                yff_val_float = float(yff_val)
+                yff_status = "PASS" if yff_val_float >= yff_threshold else "FAIL"
+            else:
+                yff_status = "PASS"  # 예외로 인정
+
+            if yff_status != "PASS":
+                Final_QC_result = "FAIL"
+                No_Call_reason.append(f"YFF is smaller than {yff_threshold}")
+
+            logger.info(f"yff_status : {yff_status}")
+
+            seqff_val = round(float(final_results["fetal_fraction_seqff"]), 3)
+            seqff_status = "PASS" if seqff_val >= seqff_threshold else "FAIL"
+
+            if seqff_status != "PASS":
+                Final_QC_result = "FAIL"
+                No_Call_reason.append(f"seqFF is smaller than {seqff_threshold}")
+
+            logger.info(f"seqff_status : {seqff_status}")
+
+            ff_ratio_threshold = qc_config.get("FF_Ratio", 2.5)
+            ff_ratio_val = float(final_results["ff_ratio"])
+            ff_ratio_status = "PASS" if ff_ratio_val < ff_ratio_threshold else "FAIL"
+
+            if ff_ratio_status != "PASS":
+                Final_QC_result = "FAIL"
+                No_Call_reason.append(f"FF_ratio is greater than {ff_ratio_threshold}")
+
+            logger.info(f"ff_ratio_status : {ff_ratio_status}")
+
+            analysis_qc = {
+                "fetal_fraction_yff": {
+                    "value": yff_val,
+                    "unit": "%",
+                    "status": yff_status,
+                    "threshold": f">{yff_threshold}%",
+                },
+                "fetal_fraction_seqff": {
+                    "value": seqff_val,
+                    "unit": "%",
+                    "status": seqff_status,
+                    "threshold": f">{seqff_threshold}%",
+                },
+                "ff_ratio": {
+                    "value": ff_ratio_val,
+                    "unit": "%",
+                    "status": ff_ratio_status,
+                    "threshold": f"<{ff_ratio_threshold}",
+                },
+                "sample_bias_qc": {
+                    "value": sample_bias_val,
+                    "status": sample_bias_status,
+                    "threshold": f"<{orig_biqc}",
+                },
+            }
+
         except Exception as e:
-            logger.warning(f"Failed to read sample_bias_qc from {prizm_qc_file}: {e}")
-            sample_bias_value = None
-            sample_bias_status = "FAIL"
-
-        if final_results:
-            try:
-                analysis_qc = {
-                    "fetal_fraction_yff": {
-                        # "value": float(final_results['fetal_fraction_yff']) if final_results['fetal_fraction_yff'] else 12.73,
-                        "value": float(final_results["fetal_fraction_yff"])
-                        if final_results["fetal_fraction_yff"] != "N/A"
-                        else "N/A",
-                        "unit": "%",
-                        "status": "PASS",
-                        "threshold": ">4%",
-                    },
-                    "fetal_fraction_seqff": {
-                        "value": round(float(final_results["fetal_fraction_seqff"]), 3),
-                        "unit": "%",
-                        "status": "PASS",
-                        "threshold": ">4%",
-                    },
-                    "ff_ratio": {
-                        "value": float(final_results["ff_ratio"]),
-                        "unit": "%",
-                        "status": "PASS",
-                        "threshold": "<2",
-                    },
-                    "sample_bias_qc": {
-                        "value": sample_bias_value,
-                        "status": sample_bias_status,
-                        "threshold": f"<{orig_biqc}",
-                    },
-                }
-
-            except Exception as e:
-                logger.error(f"Error building analysis QC: {e}")
-                analysis_qc = {}
+            logger.error(f"Error building analysis QC: {e}")
+            analysis_qc = {}
 
         qc_dir = os.path.join(analysis_dir, sample_name, "Output_QC")
         fastqc_r1_report, fastqc_r2_report = find_fastqc_reports(qc_dir)
@@ -1716,8 +1806,17 @@ def build_nipt_json(
             },
         }
 
+    # 250713 : added to show QC Results in Final Results Summary section
+    output[APPID]["final_results"]["QC_result"] = Final_QC_result
+
+    if Final_QC_result != "PASS":
+        output[APPID]["review"]["reviewer1"]["Trisomy_result"] = "No call"
+        output[APPID]["review"]["reviewer1"]["Trisomy_comment"] = ", ".join(No_Call_reason)
+        output[APPID]["review"]["reviewer2"]["Trisomy_result"] = "No call"
+        output[APPID]["review"]["reviewer2"]["Trisomy_comment"] = ", ".join(No_Call_reason)
+
     # 7. Add QC section outside NIPT (matching output.json structure)
-    output["quality_control"] = output[APPID]["quality_control"]
+    #output["quality_control"] = output[APPID]["quality_control"]
 
     # 8. Build S3 upload files
     # I don't need to put this data. Just make tar file
