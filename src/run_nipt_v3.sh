@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 스크립트 사용법 출력 함수
 usage() {
-    echo "Usage: $0 -s <sample_name> -1 <fastq_r1> -2 <fastq_r2> -l <labcode> -a <age> -root <root_directory> -work <work_directory> [--no-log] [--detached] [-f] [-rb] [-cf] [-ao] [-h]"
+    echo "Usage: $0 -s <sample_name> -1 <fastq_r1> -2 <fastq_r2> -l <labcode> -a <age> -root <root_directory> -work <work_directory> [--no-log] [--detached] [-f] [-cf] [-ao] [-h]"
     exit 1
 }
 
@@ -13,7 +13,6 @@ DETACHED_MODE=false
 FORCE_EXECUTION=false
 CLEAN_FORCE=false
 ALGORITHM_ONLY=false
-REMOVE_BAMS=false
 FASTQ_R1=""
 FASTQ_R2=""
 
@@ -32,17 +31,10 @@ while [[ $# -gt 0 ]]; do
         -f|--force) FORCE_EXECUTION=true; shift ;;
         -cf|--clean_force) CLEAN_FORCE=true; shift ;;
         -ao|--algorithm_only) ALGORITHM_ONLY=true; shift ;;
-        -rb|--remove_bams) REMOVE_BAMS=true; shift ;;
         -h) usage ;;
         *) echo "Unknown option: $1"; usage ;;
     esac
 done
-
-# 필수 인자 확인
-#if [[ -z "$SAMPLE_NAME" || -z "$FASTQ_R1" || -z "$FASTQ_R2" || -z "$LABCODE" || -z "$AGE" || -z "$ROOT_DIR" || -z "$WORK_DIR" ]]; then
-#    echo "Error: Missing required arguments" >&2
-#    usage
-#fi
 
 # 필수 인자 기본 확인 (FASTQ는 AO 모드에선 제외)
 if [[ -z "${SAMPLE_NAME-}" || -z "${LABCODE-}" || -z "${AGE-}" || -z "${ROOT_DIR-}" || -z "${WORK_DIR-}" ]]; then
@@ -161,14 +153,18 @@ else
     DOCKER_ARGS+=(--fastq_r1 "$FASTQ_R1" --fastq_r2 "$FASTQ_R2" --algorithm_only)
 fi
 
+USER_UID="$(id -u)"
+USER_GID="$(id -g)"
+USER_NAME="${USER:-ken}"
+
 # Docker 실행
 echo "=== Launching Docker container ==="
 CONTAINER_ID=$(docker run --rm -d \
-    --user "$(id -u):$(id -g)" \
+    --user "${USER_UID}:${USER_GID}" \
     --name "$SAMPLE_NAME" \
     -e TZ=Asia/Seoul \
-    -e USER=$(whoami) \
-    -e USERNAME=$(whoami) \
+    -e USER="$USER_NAME" \
+    -e USERNAME=="$USER_NAME" \
     -e HOME=/tmp \
     -e FONTCONFIG_PATH=/tmp \
     -v "$HOST_FASTQ_DIR:/Work/NIPT/fastq" \
@@ -232,12 +228,6 @@ else
     if [ $CONTAINER_EXIT_CODE -eq 0 ]; then
         if [ -f "$JSON_FILE" ]; then
             echo "Pipeline completed successfully: $SAMPLE_NAME"
-            # BAM 정리 모드가 켜져 있으면 cleanup_bam.sh 호출
-            if [ "$REMOVE_BAMS" = true ]; then
-                echo "=== REMOVE_BAMS: cleaning up BAM files ==="
-                # cleanup_bam.sh 위치에 따라 경로 조정
-                bash "$SCRIPT_DIR/cleanup_bam.sh" "$HOST_ANALYSIS_DIR" "$SAMPLE_NAME" "true"
-            fi
         else
             echo "Pipeline finished, but no completion marker found"
             echo "Possible error in internal pipeline. Marking as failed."

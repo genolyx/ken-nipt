@@ -1727,7 +1727,7 @@ def build_nipt_json(
 
             if yff_status != "PASS":
                 Final_QC_result = "FAIL"
-                No_Call_reason.append(f"YFF is smaller than {yff_threshold}")
+                No_Call_reason.append(f"Low Fetal Fraction (<{yff_threshold}%)")
 
             logger.info(f"yff_status : {yff_status}")
 
@@ -1736,7 +1736,8 @@ def build_nipt_json(
 
             if seqff_status != "PASS":
                 Final_QC_result = "FAIL"
-                No_Call_reason.append(f"seqFF is smaller than {seqff_threshold}")
+                #No_Call_reason.append(f"seqFF is smaller than {seqff_threshold}")
+                No_Call_reason.append(f"Low Fetal Fraction (<{seqff_threshold}%)")
 
             logger.info(f"seqff_status : {seqff_status}")
 
@@ -1807,13 +1808,19 @@ def build_nipt_json(
         }
 
     # 250713 : added to show QC Results in Final Results Summary section
+    # 250809 : MD_result, MD_comment are also set as No call
     output[APPID]["final_results"]["QC_result"] = Final_QC_result
 
     if Final_QC_result != "PASS":
         output[APPID]["review"]["reviewer1"]["Trisomy_result"] = "No call"
         output[APPID]["review"]["reviewer1"]["Trisomy_comment"] = ", ".join(No_Call_reason)
+        output[APPID]["review"]["reviewer1"]["MD_result"] = "No call"
+        output[APPID]["review"]["reviewer1"]["MD_comment"] = ", ".join(No_Call_reason)
+
         output[APPID]["review"]["reviewer2"]["Trisomy_result"] = "No call"
         output[APPID]["review"]["reviewer2"]["Trisomy_comment"] = ", ".join(No_Call_reason)
+        output[APPID]["review"]["reviewer2"]["MD_result"] = "No call"
+        output[APPID]["review"]["reviewer2"]["MD_comment"] = ", ".join(No_Call_reason)
 
     # 7. Add QC section outside NIPT (matching output.json structure)
     #output["quality_control"] = output[APPID]["quality_control"]
