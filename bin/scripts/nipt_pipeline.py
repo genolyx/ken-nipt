@@ -1174,6 +1174,16 @@ def generate_proper_paired_bam(
 
     ref_hg = f"{DATA_DIR}/refs/common/hg19/ucsc.hg19.fasta"
 
+    # 250811 : When the daemon removed bam files after successful running, if we want to reanalyze it
+    #           We start the pipeline by skipping making sorted.bam to save time
+    # 0. Check if it has proper_paired bam
+    if check_file_exists_advanced(proper_paired_bam, "proper paired BAM", "bam"):
+        progress.update_step(
+            f"{base_step}.0", "Checking Proper paired BAM", "SKIP", "file exists"
+        )
+        logger.info(f"Proper paired bam {proper_paired_bam} exist. No need to make sorted.bam")
+        return True
+
     # 1. BWA MEM alignment and sorting
     if check_file_exists_advanced(sorted_bam, "sorted BAM", "bam"):
         progress.update_step(f"{base_step}.1", "BWA Alignment", "SKIP", "file exists")
