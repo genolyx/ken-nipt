@@ -131,7 +131,7 @@ fi
 #mkdir -p "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR/bed" "$HOST_OUTPUT_DIR"
 #chown -R ken:ken "$HOST_FASTQ_DIR" "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_DATA_DIR" "$HOST_OUTPUT_DIR"
 mkdir -p "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
-chown -R ken:ken "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
+chown -R ken:genolyx "$HOST_ANALYSIS_DIR" "$HOST_LOG_DIR" "$HOST_OUTPUT_DIR"
 
 if ! $ALGORITHM_ONLY; then
     if [[ -z "$FASTQ_R1" || -z "$FASTQ_R2" ]]; then
@@ -160,9 +160,10 @@ fi
 # Docker 실행
 echo "=== Launching Docker container ==="
 CONTAINER_ID=$(docker run -d \
+    --security-opt seccomp=unconfined \
     --user "$(id -u):$(id -g)" \
     --name "$SAMPLE_NAME" \
-    -e TZ=Asia/Seoul \
+    -e TZ=Asia/Taipei \
     -e USER=$(whoami) \
     -e USERNAME=$(whoami) \
     -e HOME=/tmp \

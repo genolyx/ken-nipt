@@ -1,9 +1,9 @@
 {
   "QC": {
-    "max_fq_size": 30000000,
+    "max_fq_size": 13000000,
     "downsample_size": 7500000,
-    "bwa_threads": 16,
-    "samtools_threads": 6,
+    "bwa_threads": 24,
+    "samtools_threads": 12,
     "samtools_memory": "8G",
     "picard_memory": "20G",
     "orig_biqc": 4.0,

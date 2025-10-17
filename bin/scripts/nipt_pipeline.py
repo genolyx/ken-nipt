@@ -619,7 +619,7 @@ def run_command_error_log(description, command):
 
 
 # Write a log for Success or Fail
-def run_command(description, command):
+def run_command_bkup(description, command):
     try:
         log_and_print(f"Running: {description}")
         log_and_print(f"Command: {command}")
@@ -652,6 +652,36 @@ def run_command(description, command):
         log_and_print(f"Exception in {description}: {e}", "ERROR")
         return False
 
+def run_command(description, command):
+    try:
+        log_and_print(f"Running: {description}")
+        log_and_print(f"Command: {command}")
+        result = subprocess.run(
+            command, shell=True, capture_output=True, text=True, timeout=3600
+        )
+
+        # stdout은 항상 출력 (있으면)
+        if result.stdout and len(result.stdout.strip()) > 0:
+            log_and_print(f"STDOUT: {result.stdout.strip()}")
+
+        # stderr도 항상 출력 (있으면) - 이게 핵심!
+        if result.stderr and len(result.stderr.strip()) > 0:
+            log_and_print(f"STDERR: {result.stderr.strip()}")
+
+        if result.returncode == 0:
+            log_and_print(f"Success: {description}")
+            return True
+        else:
+            log_and_print(f"Failed: {description}", "ERROR")
+            log_and_print(f"Return code: {result.returncode}", "ERROR")
+            return False
+
+    except subprocess.TimeoutExpired:
+        log_and_print(f"Timeout in {description}", "ERROR")
+        return False
+    except Exception as e:
+        log_and_print(f"Exception in {description}: {e}", "ERROR")
+        return False
 
 def run_command_realtime(description, command):
     """긴 작업을 위한 실시간 출력 함수"""
@@ -2532,7 +2562,7 @@ def run_wcfamily_prediction(sample_name, paths, bam_type, filter_type, gender):
                 run_command(
                     f"WCX predict {bam_type}",
                     f"{wcx_bin} predict --zscore {wcx_threshold} {wcx_npz_input} {ref_wcx} {wcx_out_npz} "
-                    f"--plot --bed --seed 100",
+                    f"--alpha 0.01 --plot --bed --seed 100 --regions /Work/NIPT/data/empty_regions.txt"
                 )
 
                 # Gender 검증 추가

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 기본값
-IMAGE_NAME="nipt_docker_v1.0"
+IMAGE_NAME="nipt_docker_v1.1"
 TAG="latest"
 DOCKERFILE_PATH="./docker/Dockerfile"
 
@@ -32,6 +32,7 @@ echo "🛠️  Building Docker image → ${IMAGE_NAME}:${TAG}"
 echo "📁  Dockerfile path → ${DOCKERFILE_PATH}"
 
 # Docker 빌드 실행
+#docker build --no-cache -t ${IMAGE_NAME}:${TAG} -f ${DOCKERFILE_PATH} .
 docker build -t ${IMAGE_NAME}:${TAG} -f ${DOCKERFILE_PATH} .
 
 # 결과 확인

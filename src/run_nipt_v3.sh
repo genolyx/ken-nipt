@@ -36,6 +36,21 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# docker 바이너리 탐색(절대경로 우선)
+DOCKER_BIN="${DOCKER_BIN:-}"
+if [ -z "${DOCKER_BIN}" ]; then
+  if [ -x /usr/bin/docker ]; then
+    DOCKER_BIN="/usr/bin/docker"
+  elif command -v docker >/dev/null 2>&1; then
+    DOCKER_BIN="$(command -v docker)"
+  else
+    echo "[FATAL] docker not found. PATH=$PATH" >&2
+    exit 127
+  fi
+fi
+
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:${PATH:-}"
+
 # 필수 인자 기본 확인 (FASTQ는 AO 모드에선 제외)
 if [[ -z "${SAMPLE_NAME-}" || -z "${LABCODE-}" || -z "${AGE-}" || -z "${ROOT_DIR-}" || -z "${WORK_DIR-}" ]]; then
     echo "[ERROR] Missing required arguments." >&2
@@ -86,7 +101,7 @@ if [ "$CLEAN_FORCE" = true ]; then
     [ -f "$PIPELINE_MARKER" ] && rm -f "$PIPELINE_MARKER"
 
     # Docker 컨테이너 강제 삭제
-    docker rm -f "$SAMPLE_NAME" 2>/dev/null || true
+    "$DOCKER_BIN" rm -f "$SAMPLE_NAME" 2>/dev/null || true
 
     # 분석 결과 디렉토리 내 clean 대상
     ANALYSIS_BASE="$HOST_ANALYSIS_DIR/$SAMPLE_NAME"
@@ -102,7 +117,7 @@ if [ "$CLEAN_FORCE" = true ]; then
         "$OUTPUT_BASE/Output_PRIZM"/* \
         "$OUTPUT_BASE/Output_QC"/* \
         "$OUTPUT_BASE/Output_WC"/* \
-        "$OUTPUT_BASE/Output_WCX"/* 
+        "$OUTPUT_BASE/Output_WCX"/*
 
     # 최종 JSON (output_dir) 삭제
     rm -f "$JSON_OUTPUT"
@@ -113,7 +128,7 @@ fi
 if [ "$FORCE_EXECUTION" = true ]; then
     echo "=== FORCE MODE: Removing previous marker and container ==="
     [ -f "$PIPELINE_MARKER" ] && rm -f "$PIPELINE_MARKER"
-    docker rm -f "$SAMPLE_NAME" 2>/dev/null || true
+    "$DOCKER_BIN" rm -f "$SAMPLE_NAME" 2>/dev/null || true
     rm -f "$JSON_OUTPUT"
     rm -f "$HTML_OUTPUT"
     rm -f "$TAR_OUTPUT"
@@ -159,7 +174,7 @@ USER_NAME="${USER:-ken}"
 
 # Docker 실행
 echo "=== Launching Docker container ==="
-CONTAINER_ID=$(docker run --rm -d \
+CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     --user "${USER_UID}:${USER_GID}" \
     --name "$SAMPLE_NAME" \
     -e TZ=Asia/Seoul \
@@ -214,7 +229,7 @@ if [ "$DETACHED_MODE" = true ]; then
 else
     echo "Waiting for container to complete..."
     sleep 2
-    docker wait "$SAMPLE_NAME"
+    "$DOCKER_BIN" wait "$SAMPLE_NAME"
     CONTAINER_EXIT_CODE=$?
 
     #COMPLETED_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}.completed"
