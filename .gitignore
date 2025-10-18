@@ -24,3 +24,8 @@ bin/.*
 /data/refs/vn/gen_ref/
 *.npz
 *.log
+
+**/*.bam
+**/*.bai
+
+src/md_test/**/*.tsv
