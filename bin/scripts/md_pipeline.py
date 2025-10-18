@@ -312,7 +312,8 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
             wcx_reference,
             out_prefix,
             "--plot",
-            "--bed"
+            "--bed",
+            "--regions", "/Work/NIPT/data/empty_regions.txt"
         ]
         
         log_and_print(f"Running WCX predict: {' '.join(predict_cmd)}")
