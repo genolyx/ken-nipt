@@ -1718,6 +1718,10 @@ def build_nipt_json(
 
             logger.info(f"sample_bias_status : {sample_bias_status}")
 
+            # Get fetal gender to determine which FF to use for QC
+            fetal_gender = final_results.get("fetal_gender", "Unknown")
+            logger.info(f"fetal_gender : {fetal_gender}")
+
             yff_val = final_results.get("fetal_fraction_yff", "N/A")
             if yff_val != "N/A":
                 yff_val_float = float(yff_val)
@@ -1725,20 +1729,26 @@ def build_nipt_json(
             else:
                 yff_status = "PASS"  # 예외로 인정
 
-            if yff_status != "PASS":
-                Final_QC_result = "FAIL"
-                No_Call_reason.append(f"Low Fetal Fraction (<{yff_threshold}%)")
-
-            logger.info(f"yff_status : {yff_status}")
-
             seqff_val = round(float(final_results["fetal_fraction_seqff"]), 3)
             seqff_status = "PASS" if seqff_val >= seqff_threshold else "FAIL"
 
-            if seqff_status != "PASS":
-                Final_QC_result = "FAIL"
-                #No_Call_reason.append(f"seqFF is smaller than {seqff_threshold}")
-                No_Call_reason.append(f"Low Fetal Fraction (<{seqff_threshold}%)")
+            # Apply FF threshold based on gender
+            # Male: Use YFF for QC (SeqFF is not reliable for males)
+            # Female: Use SeqFF for QC (YFF is N/A for females)
+            if fetal_gender == "Male":
+                # For Male, only check YFF
+                if yff_status != "PASS":
+                    Final_QC_result = "FAIL"
+                    No_Call_reason.append(f"Low Fetal Fraction (<{yff_threshold}%)")
+                logger.info(f"Male sample - using YFF for QC: {yff_status}")
+            else:
+                # For Female (or Unknown), check SeqFF
+                if seqff_status != "PASS":
+                    Final_QC_result = "FAIL"
+                    No_Call_reason.append(f"Low Fetal Fraction (<{seqff_threshold}%)")
+                logger.info(f"Female sample - using SeqFF for QC: {seqff_status}")
 
+            logger.info(f"yff_status : {yff_status}")
             logger.info(f"seqff_status : {seqff_status}")
 
             ff_ratio_threshold = qc_config.get("FF_Ratio", 2.5)

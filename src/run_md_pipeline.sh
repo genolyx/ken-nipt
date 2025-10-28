@@ -12,17 +12,26 @@ Usage: run_md_pipeline.sh \
   -root <root_directory> \
   -work <work_directory> \
   [--fetal_gender <M|F>] \
+  [--types <orig,fetus>] \
+  [--md_targets <MD_Target_8,...>] \
+  [--filter_type <nf08|of>] \
   [--no-log] [--detached] [-f|--force] [-h]
 
 Examples:
-  # Run MD analysis on sample
+  # Run MD analysis on sample (default: orig,fetus types, MD_Target_8)
   ./run_md_pipeline.sh -s GNCI25080163 -l cordlife -root /home/ken/ken-nipt -work 2508
 
   # Force rerun
   ./run_md_pipeline.sh -s GNCI25080163 -l cordlife -root /home/ken/ken-nipt -work 2508 -f
 
-  # Artificial sample with known fetal gender
-  ./run_md_pipeline.sh -s 0001_1p36_FF05_10M -l cordlife -root /home/ken/ken-nipt -work md_test --fetal_gender M
+  # Artificial sample with specific MD target
+  ./run_md_pipeline.sh -s 0001_1p36_FF05_10M -l cordlife -root /home/ken/ken-nipt -work md_test --fetal_gender M --md_targets MD_Target_8
+
+  # Multiple MD targets
+  ./run_md_pipeline.sh -s sample1 -l cordlife -root /home/ken/ken-nipt -work md_test --md_targets MD_Target_8,MD_Target_87,MD_Target_108
+
+  # Use different filter type (of instead of nf08)
+  ./run_md_pipeline.sh -s sample2 -l cordlife -root /home/ken/ken-nipt -work 2508 --filter_type of
 
 Notes:
 - Sample BAM file must exist: analysis/<work_dir>/<sample_id>/<sample_id>.proper_paired.bam (or .sorted.bam)
@@ -41,6 +50,9 @@ LABCODE=""
 ROOT_DIR=""
 WORK_DIR=""
 FETAL_GENDER=""
+TYPES="orig,fetus"
+MD_TARGETS="MD_Target_8"
+FILTER_TYPE="of"
 
 # 인자 파싱
 while [[ $# -gt 0 ]]; do
@@ -50,6 +62,9 @@ while [[ $# -gt 0 ]]; do
         -root) ROOT_DIR="$2"; shift 2 ;;
         -work) WORK_DIR="$2"; shift 2 ;;
         --fetal_gender) FETAL_GENDER="$2"; shift 2 ;;
+        --types) TYPES="$2"; shift 2 ;;
+        --md_targets) MD_TARGETS="$2"; shift 2 ;;
+        --filter_type) FILTER_TYPE="$2"; shift 2 ;;
         --no-log) ENABLE_LOGGING=false; shift ;;
         --detached) DETACHED_MODE=true; shift ;;
         -f|--force) FORCE_EXECUTION=true; shift ;;
@@ -154,6 +169,17 @@ if [[ -n "$FETAL_GENDER" ]]; then
     DOCKER_ARGS+=("--fetal_gender" "$FETAL_GENDER")
 fi
 
+# Types 및 MD targets, filter_type 추가
+DOCKER_ARGS+=("--types" "$TYPES")
+DOCKER_ARGS+=("--md_targets" "$MD_TARGETS")
+DOCKER_ARGS+=("--filter_type" "$FILTER_TYPE")
+
+echo "Running MD analysis..."
+echo "Types: $TYPES"
+echo "MD Targets: $MD_TARGETS"
+echo "Filter Type: $FILTER_TYPE"
+
+# Detached 모드로 실행하되 로그 캡처
 CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     --user "${USER_UID}:${USER_GID}" \
     --name "$CONTAINER_NAME" \
@@ -162,11 +188,8 @@ CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     -e USERNAME="$USER_NAME" \
     -e HOME=/tmp \
     -e FONTCONFIG_PATH=/tmp \
-    -v "$HOST_ANALYSIS_DIR:/Work/NIPT/analysis/$WORK_DIR" \
-    -v "$HOST_OUTPUT_DIR:/Work/NIPT/output/$WORK_DIR" \
-    -v "$HOST_LOG_DIR:/Work/NIPT/log" \
-    -v "$HOST_DATA_DIR:/Work/NIPT/data" \
-    -v "$HOST_CONFIG_DIR:/Work/NIPT/config" \
+    -v "$ROOT_DIR:/Work/NIPT" \
+    -v "$ROOT_DIR/bin/scripts:/Work/NIPT/bin/scripts:ro" \
     -e PYTHON2="python2.7" \
     -e WC="/opt/wisecondor/wisecondor.py" \
     -e WCX="wisecondorx" \
@@ -176,16 +199,35 @@ CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     "${DOCKER_ARGS[@]}"
 )
 
-DOCKER_EXIT_CODE=$?
-
-if [ $DOCKER_EXIT_CODE -ne 0 ]; then
+if [ -z "$CONTAINER_ID" ]; then
     echo "[ERROR] Failed to launch Docker container"
     exit 1
 fi
 
-# Wait for container
+echo "Container started: $CONTAINER_ID"
+echo "Monitoring progress... (Ctrl+C to detach, container will continue)"
+
+# 실시간 로그 출력 (옵션)
+if [ "$DETACHED_MODE" = false ]; then
+    "$DOCKER_BIN" logs -f "$CONTAINER_NAME" 2>&1 &
+    LOG_PID=$!
+fi
+
+# 컨테이너 완료 대기
 echo "Waiting for MD analysis to complete..."
-"$DOCKER_BIN" wait "$CONTAINER_NAME" 2>/dev/null || true
+DOCKER_EXIT_CODE=$("$DOCKER_BIN" wait "$CONTAINER_NAME" 2>/dev/null || echo "1")
+
+# 로그 출력 프로세스 종료
+if [ "$DETACHED_MODE" = false ] && [ -n "$LOG_PID" ]; then
+    kill $LOG_PID 2>/dev/null || true
+fi
+
+if [ "$DOCKER_EXIT_CODE" != "0" ]; then
+    echo "[ERROR] MD analysis failed with exit code $DOCKER_EXIT_CODE"
+    # 실패 로그 출력
+    "$DOCKER_BIN" logs "$CONTAINER_NAME" 2>&1 | tail -50
+    exit 1
+fi
 
 echo "========================================="
 echo "MD Pipeline completed successfully!"

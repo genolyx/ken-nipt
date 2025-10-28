@@ -24,11 +24,13 @@ from pathlib import Path
 import pysam
 
 sys.path.append("/Work/NIPT/bin")
+sys.path.append("/Work/NIPT/bin/scripts/modules")
 try:
-    from process_md_result import run_microdeletion_decision_pipeline
+    from process_md_result import run_microdeletion_decision_pipeline, run_microdeletion_test_decision_pipeline
 except ImportError as e:
-    logging.warning(f"Could not import run_microdeletion_decision_pipeline: {e}")
+    logging.warning(f"Could not import run_microdeletion functions: {e}")
     run_microdeletion_decision_pipeline = None
+    run_microdeletion_test_decision_pipeline = None
 
 # Setup logging
 logging.basicConfig(
@@ -176,27 +178,143 @@ def detect_gender_from_bam(bam_file):
         return "F"
 
 
-def run_wisecondor(sample_id, bam_file, reference_dir, sample_dir, plots_dir):
+def process_bam_filters(sample_id, sample_dir, bed_file, filter_type="of"):
+    """Create orig and fetus BAM files from proper_paired.bam
+    
+    Args:
+        sample_id: Sample ID
+        sample_dir: Sample analysis directory
+        bed_file: BED file for filtering regions
+        filter_type: Filter type prefix for output files (e.g., 'nf08', 'of')
+        
+    Returns:
+        tuple: (orig_bam_path, fetus_bam_path) or (None, None) on failure
+    """
+    log_and_print(f"=== Processing BAM filters (orig, fetus) - Filter: {filter_type} ===")
+    
+    sam_tools = os.environ.get("SAMTools", "samtools")
+    ref_hg = "/Work/NIPT/data/refs/common/hg19/ucsc.hg19.fasta"
+    fetus_awk = "/Work/NIPT/src/fetus.awk"
+    
+    # File paths with filter_type
+    proper_paired_bam = os.path.join(sample_dir, f"{sample_id}.proper_paired.bam")
+    orig_bam = os.path.join(sample_dir, f"{sample_id}.{filter_type}_orig.bam")
+    fetus_bam = os.path.join(sample_dir, f"{sample_id}.{filter_type}_fetus.bam")
+    
+    # Check if files already exist
+    if os.path.exists(orig_bam) and os.path.exists(fetus_bam):
+        log_and_print(f"✓ BAM filters already exist, skipping creation:")
+        log_and_print(f"  - {orig_bam}")
+        log_and_print(f"  - {fetus_bam}")
+        return orig_bam, fetus_bam
+    
+    # Check inputs
+    if not os.path.exists(proper_paired_bam):
+        log_and_print(f"ERROR: proper_paired.bam not found: {proper_paired_bam}")
+        return None, None
+    
+    if not os.path.exists(bed_file):
+        log_and_print(f"ERROR: BED file not found: {bed_file}")
+        return None, None
+    
+    if not os.path.exists(fetus_awk):
+        log_and_print(f"ERROR: fetus.awk not found: {fetus_awk}")
+        return None, None
+    
+    try:
+        # Step 1: Create orig BAM (filter by BED regions)
+        if not os.path.exists(orig_bam):
+            log_and_print(f"Creating orig BAM: {orig_bam}")
+            cmd = [sam_tools, "view", "-b", "-L", bed_file, proper_paired_bam]
+            with open(orig_bam, 'wb') as f:
+                subprocess.run(cmd, stdout=f, check=True)
+            log_and_print(f"✓ orig BAM created: {orig_bam}")
+        
+        # Index orig BAM
+        orig_bai = f"{orig_bam}.bai"
+        if not os.path.exists(orig_bai):
+            log_and_print(f"Indexing orig BAM...")
+            subprocess.run([sam_tools, "index", orig_bam], check=True)
+            log_and_print(f"✓ orig BAM indexed")
+        
+        # Step 2: Create fetus BAM (size filter using fetus.awk)
+        if not os.path.exists(fetus_bam):
+            log_and_print(f"Creating fetus BAM: {fetus_bam}")
+            
+            # samtools view orig.bam | awk -f fetus.awk | samtools view -bt ref.fai -o fetus.bam -
+            view_proc = subprocess.Popen(
+                [sam_tools, "view", orig_bam],
+                stdout=subprocess.PIPE
+            )
+            awk_proc = subprocess.Popen(
+                ["awk", "-f", fetus_awk],
+                stdin=view_proc.stdout,
+                stdout=subprocess.PIPE
+            )
+            view_proc.stdout.close()
+            
+            with open(fetus_bam, 'wb') as f:
+                subprocess.run(
+                    [sam_tools, "view", "-bt", f"{ref_hg}.fai", "-o", fetus_bam, "-"],
+                    stdin=awk_proc.stdout,
+                    check=True
+                )
+            awk_proc.stdout.close()
+            
+            log_and_print(f"✓ fetus BAM created: {fetus_bam}")
+        
+        # Index fetus BAM
+        fetus_bai = f"{fetus_bam}.bai"
+        if not os.path.exists(fetus_bai):
+            log_and_print(f"Indexing fetus BAM...")
+            subprocess.run([sam_tools, "index", fetus_bam], check=True)
+            log_and_print(f"✓ fetus BAM indexed")
+        
+        log_and_print("=== BAM filter processing completed ===")
+        return orig_bam, fetus_bam
+        
+    except subprocess.CalledProcessError as e:
+        log_and_print(f"ERROR in BAM filtering: {e}")
+        return None, None
+
+
+def run_wisecondor(sample_id, bam_file, reference_dir, sample_dir, plots_dir, bam_type="orig"):
     """Run Wisecondor analysis
     
     Args:
         sample_dir: Sample analysis directory (e.g., /Work/NIPT/analysis/2508/GNCI25080071)
+        bam_type: BAM type (orig, fetus, mom)
     """
-    log_and_print("=== Starting Wisecondor Analysis ===")
+    log_and_print(f"=== Starting Wisecondor Analysis ({bam_type}) ===")
     
-    # Create Output_WC/orig structure
+    # Create Output_WC/bam_type structure
     wc_base_dir = os.path.join(sample_dir, "Output_WC")
-    wc_orig_dir = os.path.join(wc_base_dir, "orig")
-    os.makedirs(wc_orig_dir, exist_ok=True)
+    wc_type_dir = os.path.join(wc_base_dir, bam_type)
+    os.makedirs(wc_type_dir, exist_ok=True)
     
-    # NPZ file in base dir for compatibility with other tools
-    npz_file = os.path.join(wc_base_dir, f"{sample_id}.wc.proper_paired.npz")
-    # Output files in orig subdirectory
-    out_npz = os.path.join(wc_orig_dir, f"{sample_id}.wc.orig.out.npz")
-    plot_file = os.path.join(wc_orig_dir, f"{sample_id}.wc.orig_z.png")
+    # Extract BAM filename to determine NPZ name (e.g., proper_paired, of_fetus, etc.)
+    bam_basename = os.path.basename(bam_file)
+    bam_name_parts = bam_basename.replace(f"{sample_id}.", "").replace(".bam", "")  # e.g., "proper_paired" or "of_fetus"
     
-    # Reference file (no gender-specific reference for WC)
-    wc_reference = os.path.join(reference_dir, "WC", "orig_200k_proper_paired.npz")
+    # NPZ file in base dir - name based on input BAM
+    npz_file = os.path.join(wc_base_dir, f"{sample_id}.wc.{bam_name_parts}.npz")
+    # Output files in bam_type subdirectory
+    out_npz = os.path.join(wc_type_dir, f"{sample_id}.wc.{bam_type}.out.npz")
+    report_file = os.path.join(wc_type_dir, f"{sample_id}.wc.{bam_type}.report.txt")
+    plot_base = os.path.join(wc_type_dir, f"{sample_id}.wc.{bam_type}")  # wisecondor adds _z.png
+    
+    # Reference file - different for orig and fetus
+    if bam_type == "fetus":
+        # For fetus, use fetus-specific reference
+        wc_reference = os.path.join(reference_dir, "WC", "fetus_200k_of.npz")
+    else:
+        # For orig (proper_paired), use orig reference
+        wc_reference = os.path.join(reference_dir, "WC", "orig_200k_proper_paired.npz")
+    
+    cyto_file = "/Work/NIPT/data/bed/common/cytoBand.txt"
+    
+    log_and_print(f"Using NPZ file: {npz_file}")
+    log_and_print(f"Using reference: {wc_reference}")
     
     if not os.path.exists(wc_reference):
         log_and_print(f"WARNING: WC reference not found: {wc_reference}")
@@ -227,28 +345,57 @@ def run_wisecondor(sample_id, bam_file, reference_dir, sample_dir, plots_dir):
             os.environ.get("WC", "/opt/wisecondor/wisecondor.py"),
             "test",
             npz_file,
-            wc_reference,
-            out_npz
+            out_npz,
+            wc_reference
         ]
         
         log_and_print(f"Running WC test: {' '.join(test_cmd)}")
         subprocess.run(test_cmd, capture_output=True, text=True, check=True)
         
-        # Step 3: Generate plot separately
-        log_and_print("WC Step 3: Generating plot")
+        # Step 3: Generate report
+        log_and_print("WC Step 3: Generating report")
+        report_cmd = [
+            os.environ.get("PYTHON2", "python2.7"),
+            os.environ.get("WC", "/opt/wisecondor/wisecondor.py"),
+            "report",
+            npz_file,
+            out_npz
+        ]
+        
+        log_and_print(f"Running WC report: {' '.join(report_cmd)}")
+        result = subprocess.run(report_cmd, capture_output=True, text=True, check=True)
+        with open(report_file, 'w') as f:
+            f.write(result.stdout)
+        log_and_print(f"Report saved: {report_file}")
+        
+        # Step 4: Generate plot
+        log_and_print("WC Step 4: Generating plot")
+        
+        # Build plot command - include cytofile only if it exists
         plot_cmd = [
             os.environ.get("PYTHON2", "python2.7"),
             os.environ.get("WC", "/opt/wisecondor/wisecondor.py"),
-            "plot",
-            out_npz,
-            plot_file
+            "plot"
         ]
+        
+        # Add cytofile if it exists
+        if os.path.exists(cyto_file):
+            plot_cmd.extend(["-cytofile", cyto_file])
+        else:
+            log_and_print(f"WARNING: cytoband file not found: {cyto_file}, generating plot without it")
+        
+        plot_cmd.extend([
+            "-filetype", "png",
+            out_npz,
+            plot_base
+        ])
         
         log_and_print(f"Running WC plot: {' '.join(plot_cmd)}")
         subprocess.run(plot_cmd, capture_output=True, text=True, check=True)
         
         log_and_print(f"Wisecondor completed: {out_npz}")
-        log_and_print(f"Plot saved: {plot_file}")
+        log_and_print(f"Report saved: {report_file}")
+        log_and_print(f"Plot saved: {plot_base}_z.png")
         return True
         
     except subprocess.CalledProcessError as e:
@@ -257,22 +404,27 @@ def run_wisecondor(sample_id, bam_file, reference_dir, sample_dir, plots_dir):
         return False
 
 
-def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, gender="F"):
+def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, gender="F", bam_type="orig"):
     """Run WisecondorX analysis with gender-specific reference
     
     Args:
         sample_dir: Sample analysis directory (e.g., /Work/NIPT/analysis/2508/GNCI25080071)
         gender: Fetal gender (M or F) for reference selection
+        bam_type: BAM type (orig, fetus, mom)
     """
-    log_and_print("=== Starting WisecondorX Analysis ===")
+    log_and_print(f"=== Starting WisecondorX Analysis ({bam_type}) ===")
     
-    # Create Output_WCX/orig structure
+    # Create Output_WCX/bam_type structure
     wcx_base_dir = os.path.join(sample_dir, "Output_WCX")
-    wcx_orig_dir = os.path.join(wcx_base_dir, "orig")
-    os.makedirs(wcx_orig_dir, exist_ok=True)
+    wcx_type_dir = os.path.join(wcx_base_dir, bam_type)
+    os.makedirs(wcx_type_dir, exist_ok=True)
     
-    # NPZ file in base dir for compatibility with other tools
-    npz_file = os.path.join(wcx_base_dir, f"{sample_id}.wcx.proper_paired.npz")
+    # Extract BAM filename to determine NPZ name (e.g., proper_paired, of_fetus, etc.)
+    bam_basename = os.path.basename(bam_file)
+    bam_name_parts = bam_basename.replace(f"{sample_id}.", "").replace(".bam", "")  # e.g., "proper_paired" or "of_fetus"
+    
+    # NPZ file in base dir - name based on input BAM
+    npz_file = os.path.join(wcx_base_dir, f"{sample_id}.wcx.{bam_name_parts}.npz")
     
     try:
         # Step 1: Convert BAM to NPZ
@@ -292,7 +444,14 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
         log_and_print(f"WCX NPZ created: {npz_file}")
         
         # Step 2: Predict with gender-specific reference
-        wcx_reference = os.path.join(reference_dir, "WCX", f"orig_{gender}_200k_proper_paired.npz")
+        # Different reference for orig and fetus
+        if bam_type == "fetus":
+            # For fetus, use fetus-specific reference with gender
+            wcx_reference = os.path.join(reference_dir, "WCX", f"fetus_{gender}_200k_of.npz")
+        else:
+            # For orig (proper_paired), use orig reference with gender
+            wcx_reference = os.path.join(reference_dir, "WCX", f"orig_{gender}_200k_proper_paired.npz")
+        
         log_and_print(f"Using WCX reference: {wcx_reference}")
         
         if not os.path.exists(wcx_reference):
@@ -300,8 +459,8 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
             return False
         
         log_and_print("WCX Step 2: Running prediction")
-        # Output files in orig subdirectory
-        out_prefix = os.path.join(wcx_orig_dir, f"{sample_id}.wcx.orig")
+        # Output files in bam_type subdirectory
+        out_prefix = os.path.join(wcx_type_dir, f"{sample_id}.wcx.{bam_type}")
         aberrations_bed = f"{out_prefix}_aberrations.bed"
         # WCX creates plots automatically in {out_prefix}.plots/
         
@@ -328,11 +487,21 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
         return False
 
 
-def run_md_detection(sample_id, labcode, analysis_dir, output_dir, bed_dir):
-    """Run MD detection pipeline"""
+def run_md_detection(sample_id, labcode, analysis_dir, output_dir, bed_dir, types=None, md_targets=None):
+    """Run MD detection pipeline
+    
+    Args:
+        sample_id: Sample ID
+        labcode: Lab code
+        analysis_dir: Analysis directory
+        output_dir: Output directory
+        bed_dir: BED directory
+        types: List of BAM types to process (default: ["orig", "fetus"] for test mode)
+        md_targets: List of MD targets to process (default: ["MD_Target_8"] for test mode)
+    """
     log_and_print("=== Starting MD Detection Pipeline ===")
     
-    if run_microdeletion_decision_pipeline is None:
+    if run_microdeletion_test_decision_pipeline is None:
         log_and_print("ERROR: MD detection module not available")
         return False
     
@@ -344,13 +513,16 @@ def run_md_detection(sample_id, labcode, analysis_dir, output_dir, bed_dir):
             "output_dir": output_dir
         }
         
-        success = run_microdeletion_decision_pipeline(
+        # Use test version with configurable types and targets
+        success = run_microdeletion_test_decision_pipeline(
             sample_id,
             labcode,
             config,
             analysis_dir,
             output_dir,
-            bed_dir
+            bed_dir,
+            types=types,
+            md_targets=md_targets
         )
         
         if success:
@@ -377,6 +549,12 @@ def main():
     parser.add_argument('--data_dir', default='/Work/NIPT/data', help='Data directory')
     parser.add_argument('--fetal_gender', choices=['M', 'F', 'Male', 'Female', 'male', 'female'], 
                         help='Fetal gender (for artificial samples). M/Male or F/Female')
+    parser.add_argument('--types', type=str, default='orig,fetus',
+                        help='Comma-separated BAM types to process (default: orig,fetus)')
+    parser.add_argument('--md_targets', type=str, default='MD_Target_8',
+                        help='Comma-separated MD targets to process (default: MD_Target_8)')
+    parser.add_argument('--filter_type', type=str, default='nf08',
+                        help='BAM filter type prefix (default: nf08)')
     
     args = parser.parse_args()
     
@@ -387,6 +565,11 @@ def main():
     output_dir = args.output_dir
     data_dir = args.data_dir
     fetal_gender_arg = args.fetal_gender
+    
+    # Parse types and md_targets from comma-separated strings
+    types = [t.strip() for t in args.types.split(',')]
+    md_targets = [mt.strip() for mt in args.md_targets.split(',')]
+    filter_type = args.filter_type
     
     # Setup directories
     sample_analysis_dir = os.path.join(analysis_dir, work_dir, sample_id)
@@ -458,17 +641,44 @@ def main():
         log_and_print("WARNING: Could not determine gender, defaulting to Female")
         gender = "F"
     
-    # Step 3: Run Wisecondor
+    # Step 2.8: Process BAM filters (orig, fetus)
+    log_and_print("\n=== Step 2.8: Processing BAM Filters ===")
+    bed_file = os.path.join(data_dir, f"bed/{filter_type}.bed")
+    log_and_print(f"Using BED file: {bed_file}")
+    orig_bam, fetus_bam = process_bam_filters(sample_id, sample_analysis_dir, bed_file, filter_type)
+    
+    # Step 3: Run Wisecondor for orig and fetus
     log_and_print("\n=== Step 3: Running Wisecondor ===")
-    run_wisecondor(sample_id, bam_path, reference_dir, sample_analysis_dir, plots_dir)
+    
+    # 3.1: WiseCONDOR on orig
+    log_and_print("Running WiseCONDOR on orig BAM...")
+    run_wisecondor(sample_id, bam_path, reference_dir, sample_analysis_dir, plots_dir, bam_type="orig")
+    
+    # 3.2: WiseCONDOR on fetus (if available)
+    if fetus_bam and os.path.exists(fetus_bam):
+        log_and_print("Running WiseCONDOR on fetus BAM...")
+        run_wisecondor(sample_id, fetus_bam, reference_dir, sample_analysis_dir, plots_dir, bam_type="fetus")
     
     # Step 4: Run WisecondorX (with gender-specific reference)
     log_and_print("\n=== Step 4: Running WisecondorX ===")
-    run_wisecondorx(sample_id, bam_path, reference_dir, sample_analysis_dir, plots_dir, gender)
+    
+    # 4.1: WiseCONDORX on orig
+    log_and_print("Running WiseCONDORX on orig BAM...")
+    run_wisecondorx(sample_id, bam_path, reference_dir, sample_analysis_dir, plots_dir, gender, bam_type="orig")
+    
+    # 4.2: WiseCONDORX on fetus (if available)
+    if fetus_bam and os.path.exists(fetus_bam):
+        log_and_print("Running WiseCONDORX on fetus BAM...")
+        run_wisecondorx(sample_id, fetus_bam, reference_dir, sample_analysis_dir, plots_dir, gender, bam_type="fetus")
     
     # Step 5: Run MD Detection
     log_and_print("\n=== Step 5: Running MD Detection ===")
-    run_md_detection(sample_id, labcode, sample_analysis_dir, sample_output_dir, bed_dir)
+    log_and_print(f"Processing types: {types}")
+    log_and_print(f"Processing MD targets: {md_targets}")
+    # Pass work_dir level path (not sample-specific) as expected by the MD detection function
+    md_analysis_dir = os.path.join(analysis_dir, work_dir)
+    md_output_dir = os.path.join(output_dir, work_dir)
+    run_md_detection(sample_id, labcode, md_analysis_dir, md_output_dir, bed_dir, types=types, md_targets=md_targets)
     
     # Mark completion
     marker_file = os.path.join(sample_analysis_dir, f"{sample_id}.md_pipeline_completed.marker")

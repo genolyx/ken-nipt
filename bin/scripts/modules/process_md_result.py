@@ -331,6 +331,111 @@ def run_microdeletion_decision_pipeline(sample_name, labcode, config, analysis_d
                 #    logging.info(f"[NOT MATCHED] MD call: {method}-{tag} {md_key}")
     return True
 
+
+def run_microdeletion_test_decision_pipeline(
+    sample_name, labcode, config, analysis_dir, output_dir, bed_dir,
+    types=None, md_targets=None
+):
+    """
+    Run microdeletion decision for specified methods, types, and MD targets.
+    This is a flexible version for testing/artificial samples.
+    
+    Args:
+        sample_name: Sample ID
+        labcode: Lab code
+        config: Configuration dictionary
+        analysis_dir: Analysis directory path
+        output_dir: Output directory path
+        bed_dir: BED files directory path
+        types: List of BAM types to process (default: ["orig", "fetus"])
+        md_targets: List of MD targets to process (default: ["MD_Target_8"])
+    
+    Returns:
+        bool: True if successful
+    """
+    
+    # Default values for testing
+    if types is None:
+        types = ["orig", "fetus"]
+    
+    if md_targets is None:
+        md_targets = ["MD_Target_8"]
+    
+    methods = ["WC", "WCX"]
+
+    wc_input_files = {
+        "orig": f"{analysis_dir}/{sample_name}/Output_WC/orig/{sample_name}.wc.orig.report.txt",
+        "fetus": f"{analysis_dir}/{sample_name}/Output_WC/fetus/{sample_name}.wc.fetus.report.txt",
+        "mom": f"{analysis_dir}/{sample_name}/Output_WC/mom/{sample_name}.wc.mom.report.txt",
+    }
+
+    wcx_input_files = {
+        "orig": f"{analysis_dir}/{sample_name}/Output_WCX/orig/{sample_name}.wcx.orig_aberrations.bed",
+        "fetus": f"{analysis_dir}/{sample_name}/Output_WCX/fetus/{sample_name}.wcx.fetus_aberrations.bed",
+        "mom": f"{analysis_dir}/{sample_name}/Output_WCX/mom/{sample_name}.wcx.mom_aberrations.bed",
+    }
+
+    config_file = f"/Work/NIPT/config/{labcode}/pipeline_config.json"
+    
+    # Load config file to get MD target and threshold information
+    try:
+        with open(config_file) as f:
+            config_data = json.load(f)
+    except Exception as e:
+        logging.error(f"[ERROR] Failed to load config file {config_file}: {e}")
+        return False
+
+    for md_key in md_targets:
+        if md_key not in config_data:
+            logging.warning(f"[SKIP] MD target {md_key} not found in config")
+            continue
+        
+        bed_file = f"{bed_dir}/common/{config_data[md_key]['bed']}"
+
+        for method in methods:
+            for tag in types:
+                # Determine input file and output dir
+                if method == "WC":
+                    input_file = wc_input_files.get(tag)
+                    output_subdir = "Output_WC"
+                elif method == "WCX":
+                    input_file = wcx_input_files.get(tag)
+                    output_subdir = "Output_WCX"
+                else:
+                    continue
+
+                if input_file is None:
+                    logging.warning(f"[SKIP] Unknown type: {tag}")
+                    continue
+
+                output_path = f"{analysis_dir}/{sample_name}/{output_subdir}"
+                threshold = config_data.get(method, {}).get(f"{tag}_call_threshold")
+
+                if not Path(input_file).exists():
+                    logging.warning(f"[SKIP] Input file missing: {input_file}")
+                    continue
+
+                logging.info(f"[MD] {method}-{tag} on {md_key} (Threshold: {threshold})")
+                success = process_microdeletion_result(
+                    sample_name=sample_name,
+                    tool_name=method,
+                    input_file=input_file,
+                    tag=tag,
+                    target_file=bed_file,
+                    config_file=config_file,
+                    md_select=md_key,
+                    output_dir=output_path,
+                    threshold=threshold
+                )
+
+                if success:
+                    logging.info(f"[PASS] MD call: {method}-{tag} {md_key}")
+                #else:
+                #    logging.info(f"[NOT MATCHED] MD call: {method}-{tag} {md_key}")
+    
+    return True
+
+
 def copy_md_output_files(sample_id, analysis_dir, output_dir):
     """Copy MD output images and reports to unified output directory."""
     groups = ['orig', 'fetus', 'mom']
