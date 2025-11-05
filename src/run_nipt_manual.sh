@@ -110,7 +110,7 @@ if [ "$CLEAN_FORCE" = true ]; then
         "$OUTPUT_BASE/Output_PRIZM"/* \
         "$OUTPUT_BASE/Output_QC"/* \
         "$OUTPUT_BASE/Output_WC"/* \
-        "$OUTPUT_BASE/Output_WCX"/* 
+        "$OUTPUT_BASE/Output_WCX"/*
 
     # 최종 JSON (output_dir) 삭제
     rm -f "$JSON_OUTPUT"
@@ -191,7 +191,7 @@ CONTAINER_ID=$(docker run -d \
     -e DATA_DIR="/Work/NIPT/data" \
     -e ANALYSIS_DIR="/Work/NIPT/analysis" \
     -e OUTPUT_DIR="/Work/NIPT/output" \
-    nipt_docker_v1.0 \
+    nipt_docker_v1.1 \
     "${DOCKER_ARGS[@]}"
     #--sample_name "$SAMPLE_NAME" \
     #--fastq_r1 "$FASTQ_R1" \
@@ -219,6 +219,7 @@ else
     CONTAINER_EXIT_CODE=$?
 
     COMPLETED_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}.completed"
+    JSON_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}.json"
     FAILED_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}.failed"
     PROGRESS_FILE="$HOST_OUTPUT_DIR/${SAMPLE_NAME}_progress.txt"
     ANALYSIS_LOG_FILE="$HOST_ANALYSIS_DIR/${SAMPLE_NAME}/${SAMPLE_NAME}_analysis.log"
@@ -226,7 +227,7 @@ else
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
     if [ $CONTAINER_EXIT_CODE -eq 0 ]; then
-        if [ -f "$COMPLETED_FILE" ]; then
+        if [ -f "$JSON_FILE" ]; then
             echo "Pipeline completed successfully: $SAMPLE_NAME"
             # BAM 정리 모드가 켜져 있으면 cleanup_bam.sh 호출
             if [ "$REMOVE_BAMS" = true ]; then

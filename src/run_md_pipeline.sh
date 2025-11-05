@@ -15,7 +15,10 @@ Usage: run_md_pipeline.sh \
   [--types <orig,fetus>] \
   [--md_targets <MD_Target_8,...>] \
   [--filter_type <nf08|of>] \
-  [--no-log] [--detached] [-f|--force] [-h]
+  [--ignore-min-length] \
+  [--ignore-zscore] \
+  [--skip-npz] \
+  [--no-log] [--detached] [-f|--force] [-ro|--result-only] [-h]
 
 Examples:
   # Run MD analysis on sample (default: orig,fetus types, MD_Target_8)
@@ -32,6 +35,9 @@ Examples:
 
   # Use different filter type (of instead of nf08)
   ./run_md_pipeline.sh -s sample2 -l cordlife -root /home/ken/ken-nipt -work 2508 --filter_type of
+
+  # Result-only mode: Skip WC/WCX analysis, only run MD detection
+  ./run_md_pipeline.sh -s sample4 -l cordlife -root /home/ken/ken-nipt -work md_test -ro
 
 Notes:
 - Sample BAM file must exist: analysis/<work_dir>/<sample_id>/<sample_id>.proper_paired.bam (or .sorted.bam)
@@ -53,6 +59,10 @@ FETAL_GENDER=""
 TYPES="orig,fetus"
 MD_TARGETS="MD_Target_8"
 FILTER_TYPE="of"
+IGNORE_MIN_LENGTH=false
+IGNORE_ZSCORE=false
+SKIP_NPZ=false
+RESULT_ONLY=false
 
 # 인자 파싱
 while [[ $# -gt 0 ]]; do
@@ -65,9 +75,13 @@ while [[ $# -gt 0 ]]; do
         --types) TYPES="$2"; shift 2 ;;
         --md_targets) MD_TARGETS="$2"; shift 2 ;;
         --filter_type) FILTER_TYPE="$2"; shift 2 ;;
+        --ignore-min-length) IGNORE_MIN_LENGTH=true; shift ;;
+        --ignore-zscore) IGNORE_ZSCORE=true; shift ;;
+        --skip-npz) SKIP_NPZ=true; shift ;;
         --no-log) ENABLE_LOGGING=false; shift ;;
         --detached) DETACHED_MODE=true; shift ;;
         -f|--force) FORCE_EXECUTION=true; shift ;;
+        -ro|--result-only) RESULT_ONLY=true; shift ;;
         -h|--help) usage ;;
         *) echo "[ERROR] Unknown option: $1"; usage ;;
     esac
@@ -119,9 +133,12 @@ echo "========================================="
 # 마커 파일 확인
 PIPELINE_MARKER="$HOST_ANALYSIS_DIR/${SAMPLE_ID}/${SAMPLE_ID}.md_pipeline_completed.marker"
 
-if [[ "$FORCE_EXECUTION" = false && -f "$PIPELINE_MARKER" ]]; then
-    echo "=== SKIPPING: MD analysis already completed. Use -f to force ==="
-    exit 0
+# Result-only 모드에서는 마커 체크를 skip (MD detection만 수행하므로)
+if [[ "$RESULT_ONLY" = false ]]; then
+    if [[ "$FORCE_EXECUTION" = false && -f "$PIPELINE_MARKER" ]]; then
+        echo "=== SKIPPING: MD analysis already completed. Use -f to force or -ro to re-run MD detection only ==="
+        exit 0
+    fi
 fi
 
 # Force 모드: 마커 삭제
@@ -130,21 +147,26 @@ if [ "$FORCE_EXECUTION" = true ]; then
     rm -f "$PIPELINE_MARKER"
 fi
 
-# BAM 파일 존재 확인
-SAMPLE_DIR="$HOST_ANALYSIS_DIR/$SAMPLE_ID"
-BAM_FILE=""
+# Result-only 모드에서는 BAM 파일 체크를 skip
+if [[ "$RESULT_ONLY" = false ]]; then
+    # BAM 파일 존재 확인
+    SAMPLE_DIR="$HOST_ANALYSIS_DIR/$SAMPLE_ID"
+    BAM_FILE=""
 
-if [[ -f "$SAMPLE_DIR/${SAMPLE_ID}.proper_paired.bam" ]]; then
-    BAM_FILE="$SAMPLE_DIR/${SAMPLE_ID}.proper_paired.bam"
-elif [[ -f "$SAMPLE_DIR/${SAMPLE_ID}.sorted.bam" ]]; then
-    BAM_FILE="$SAMPLE_DIR/${SAMPLE_ID}.sorted.bam"
+    if [[ -f "$SAMPLE_DIR/${SAMPLE_ID}.proper_paired.bam" ]]; then
+        BAM_FILE="$SAMPLE_DIR/${SAMPLE_ID}.proper_paired.bam"
+    elif [[ -f "$SAMPLE_DIR/${SAMPLE_ID}.sorted.bam" ]]; then
+        BAM_FILE="$SAMPLE_DIR/${SAMPLE_ID}.sorted.bam"
+    else
+        echo "[ERROR] No BAM file found for sample $SAMPLE_ID"
+        echo "  Expected: $SAMPLE_DIR/${SAMPLE_ID}.proper_paired.bam or .sorted.bam"
+        exit 1
+    fi
+
+    echo "BAM file found: ✓"
 else
-    echo "[ERROR] No BAM file found for sample $SAMPLE_ID"
-    echo "  Expected: $SAMPLE_DIR/${SAMPLE_ID}.proper_paired.bam or .sorted.bam"
-    exit 1
+    echo "=== Result-Only Mode: Skipping BAM file check ==="
 fi
-
-echo "BAM file found: ✓"
 
 # Docker 실행
 echo "=== Launching Docker container for MD analysis ==="
@@ -174,10 +196,44 @@ DOCKER_ARGS+=("--types" "$TYPES")
 DOCKER_ARGS+=("--md_targets" "$MD_TARGETS")
 DOCKER_ARGS+=("--filter_type" "$FILTER_TYPE")
 
+# Ignore min length 옵션 추가
+if [[ "$IGNORE_MIN_LENGTH" == true ]]; then
+    DOCKER_ARGS+=("--ignore-min-length")
+fi
+
+# Ignore zscore 옵션 추가
+if [[ "$IGNORE_ZSCORE" == true ]]; then
+    DOCKER_ARGS+=("--ignore-zscore")
+fi
+
+# Skip NPZ 옵션 추가
+if [[ "$SKIP_NPZ" == true ]]; then
+    DOCKER_ARGS+=("--skip-npz")
+fi
+
+# Force 옵션 추가
+if [[ "$FORCE_EXECUTION" == true ]]; then
+    DOCKER_ARGS+=("--force")
+fi
+
+# Result-only 옵션 추가
+if [[ "$RESULT_ONLY" == true ]]; then
+    DOCKER_ARGS+=("--result-only")
+fi
+
 echo "Running MD analysis..."
 echo "Types: $TYPES"
 echo "MD Targets: $MD_TARGETS"
 echo "Filter Type: $FILTER_TYPE"
+echo "Ignore Min Length: $IGNORE_MIN_LENGTH"
+echo "Ignore Z-score: $IGNORE_ZSCORE"
+echo "Skip NPZ: $SKIP_NPZ"
+echo "Force Execution: $FORCE_EXECUTION"
+echo "Result Only: $RESULT_ONLY"
+echo ""
+echo "Docker command arguments:"
+echo "  python3 /Work/NIPT/bin/scripts/md_pipeline.py ${DOCKER_ARGS[*]}"
+echo ""
 
 # Detached 모드로 실행하되 로그 캡처
 CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
@@ -194,7 +250,7 @@ CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     -e WC="/opt/wisecondor/wisecondor.py" \
     -e WCX="wisecondorx" \
     --entrypoint python3 \
-    nipt_docker_v1.1 \
+    nipt_docker_v1.2 \
     /Work/NIPT/bin/scripts/md_pipeline.py \
     "${DOCKER_ARGS[@]}"
 )
@@ -207,18 +263,25 @@ fi
 echo "Container started: $CONTAINER_ID"
 echo "Monitoring progress... (Ctrl+C to detach, container will continue)"
 
-# 실시간 로그 출력 (옵션)
-if [ "$DETACHED_MODE" = false ]; then
-    "$DOCKER_BIN" logs -f "$CONTAINER_NAME" 2>&1 &
-    LOG_PID=$!
+# Detached 모드 처리
+if [ "$DETACHED_MODE" = true ]; then
+    # Detached 모드: 컨테이너 시작 후 즉시 종료
+    echo "Container running in detached mode."
+    echo "Check progress with: docker logs -f $CONTAINER_NAME"
+    echo "Check status with: docker ps -a | grep $CONTAINER_NAME"
+    exit 0
 fi
+
+# 실시간 로그 출력 (foreground 모드)
+"$DOCKER_BIN" logs -f "$CONTAINER_NAME" 2>&1 &
+LOG_PID=$!
 
 # 컨테이너 완료 대기
 echo "Waiting for MD analysis to complete..."
 DOCKER_EXIT_CODE=$("$DOCKER_BIN" wait "$CONTAINER_NAME" 2>/dev/null || echo "1")
 
 # 로그 출력 프로세스 종료
-if [ "$DETACHED_MODE" = false ] && [ -n "$LOG_PID" ]; then
+if [ -n "$LOG_PID" ]; then
     kill $LOG_PID 2>/dev/null || true
 fi
 

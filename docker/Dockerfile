@@ -207,6 +207,7 @@ COPY bin/scripts/modules/prizm_runner.py            /Work/NIPT/bin/
 COPY bin/scripts/modules/ezd_runner.py              /Work/NIPT/bin/
 COPY bin/scripts/modules/sca_detector.py            /Work/NIPT/bin/
 COPY bin/scripts/modules/process_md_result.py       /Work/NIPT/bin/
+COPY bin/scripts/modules/process_md_result_dev.py   /Work/NIPT/bin/
 COPY bin/scripts/modules/generate_json_output.py    /Work/NIPT/bin/
 COPY bin/scripts/modules/html_review_page.py        /Work/NIPT/bin/
 COPY bin/scripts/modules/gender_detector.py         /Work/NIPT/bin/

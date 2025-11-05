@@ -2265,7 +2265,9 @@ def process_hmmcopy(sample_name, config):
     # Process each filter type to create BAM files using lab-specific BED files
     # nf09 removes too many reads and it causes WC, WCFF convert error
     # filter_types = ['of', 'nf08', 'nf09']
-    filter_types = ["of", "nf08"]
+    #filter_types = ["of", "nf08"]
+    # nf08 is not needed anymore
+    filter_types = ["of"]
     for filter_type in filter_types:
         # Add orig BAM
         orig_bam = f"{ANALYSIS_DIR}/{sample_name}/{sample_name}.{filter_type}_orig.bam"
@@ -3487,7 +3489,8 @@ def main():
     # Define filter paths
     filter_paths = {
         "of": bed_dir / "common" / "Uniform_2017_allY.bed",
-        "nf08": bed_dir / labcode / "hg19_mappability_0.8_clean_all_36mer.bed",
+        # 251029 : nf08 is of no use
+        #"nf08": bed_dir / labcode / "hg19_mappability_0.8_clean_all_36mer.bed",
         # "nf09": bed_dir / labcode / "hg19_mappability_0.9_clean_all_36mer.bed"
     }
 

@@ -177,7 +177,7 @@ echo "=== Launching Docker container ==="
 CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     --user "${USER_UID}:${USER_GID}" \
     --name "$SAMPLE_NAME" \
-    -e TZ=Asia/Seoul \
+    -e TZ=Asia/Taipei \
     -e USER="$USER_NAME" \
     -e USERNAME=="$USER_NAME" \
     -e HOME=/tmp \
