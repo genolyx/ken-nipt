@@ -24,6 +24,8 @@ bin/.*
 /data/refs/vn/gen_ref/
 *.npz
 *.log
+*.tar
+*.tar.gz
 
 **/*.bam
 **/*.bai

@@ -723,8 +723,15 @@ Examples:
                 output_tsv, scan_dir = args.generate_tsv
                 logger.info(f"Generating TSV file from directory: {scan_dir}")
                 
-                # Auto-detect work_dir and root_dir from scan_dir if not provided
+                # If output_tsv is a relative path, save it in scan_dir
+                output_tsv_path = Path(output_tsv)
                 scan_path = Path(scan_dir)
+                if not output_tsv_path.is_absolute():
+                    # Relative path: save in scan_dir
+                    output_tsv = str(scan_path / output_tsv)
+                    logger.info(f"Output TSV will be saved to: {output_tsv}")
+                
+                # Auto-detect work_dir and root_dir from scan_dir if not provided
                 
                 if not args.work_dir:
                     # Use last directory name as work_dir

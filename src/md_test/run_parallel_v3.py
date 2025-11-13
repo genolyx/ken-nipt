@@ -552,7 +552,7 @@ def main():
     parser.add_argument('--male_tsv', type=Path, required=True, 
                        help='Male fetus samples TSV file')
     parser.add_argument('--md_bed', type=str, required=True, 
-                       help='Microdeletion BED file(s), comma-separated for multiple files')
+                       help='Microdeletion BED file(s) or directory path(s). If directory, automatically finds all BED files starting with "temp". Comma-separated for multiple files/directories.')
     parser.add_argument('--script', type=Path, default=None,
                        help='make_artificial.sh path (default: same directory as this script)')
     
@@ -589,13 +589,58 @@ def main():
     # Make script path absolute
     args.script = args.script.resolve()
     
-    # Parse multiple BED files
+    # Parse BED files: support both file paths and directory paths
     bed_files_str = args.md_bed.split(',')
-    bed_files = [Path(b.strip()) for b in bed_files_str]
-    for bed_file in bed_files:
-        if not bed_file.exists():
-            logger.error(f"BED file not found: {bed_file}")
+    bed_files = []
+    
+    script_dir = Path(__file__).parent
+    
+    for bed_path_str in bed_files_str:
+        bed_path_str = bed_path_str.strip()
+        bed_path = Path(bed_path_str)
+        
+        # If relative path, try relative to script directory first
+        if not bed_path.is_absolute():
+            # Try script_dir / bed_path
+            candidate = script_dir / bed_path
+            if candidate.exists():
+                bed_path = candidate
+            else:
+                # Try as-is (current directory)
+                bed_path = Path(bed_path_str)
+        
+        # Check if it's a directory
+        if bed_path.is_dir():
+            # Find all BED files starting with "temp" in this directory
+            temp_beds = sorted(bed_path.glob("temp*.bed"))
+            if not temp_beds:
+                logger.warning(f"No BED files starting with 'temp' found in directory: {bed_path}")
+            else:
+                logger.info("=" * 60)
+                logger.info(f"Scanning directory: {bed_path}")
+                logger.info(f"Found {len(temp_beds)} BED file(s) starting with 'temp':")
+                for idx, bf in enumerate(temp_beds, 1):
+                    logger.info(f"  [{idx}] {bf.name} (full path: {bf})")
+                logger.info("=" * 60)
+                bed_files.extend(temp_beds)
+        elif bed_path.exists() and bed_path.suffix == '.bed':
+            # It's a BED file
+            bed_files.append(bed_path)
+        else:
+            logger.error(f"BED file or directory not found: {bed_path_str}")
             return 1
+    
+    if not bed_files:
+        logger.error("No BED files found!")
+        return 1
+    
+    # Print summary of all BED files found
+    logger.info("\n" + "=" * 60)
+    logger.info(f"Total BED files to process: {len(bed_files)}")
+    logger.info("BED files list:")
+    for idx, bf in enumerate(bed_files, 1):
+        logger.info(f"  [{idx}] {bf}")
+    logger.info("=" * 60 + "\n")
     
     # Validate Mom TSV file
     if not args.mom_tsv.exists():

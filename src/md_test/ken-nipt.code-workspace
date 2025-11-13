@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../ken-nbs"
+		},
+		{
+			"path": "../../../nipt-daemon"
+		}
+	],
+	"settings": {}
+}

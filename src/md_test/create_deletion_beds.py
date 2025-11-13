@@ -17,6 +17,13 @@ from pathlib import Path
 
 def parse_bed(bed_file: Path):
     """Parse BED file and return chromosome, start, end, disease name."""
+    # If path is relative and doesn't exist, try looking in bed/ directory
+    if not bed_file.is_absolute() and not bed_file.exists():
+        script_dir = Path(__file__).parent
+        bed_dir_path = script_dir / "bed" / bed_file
+        if bed_dir_path.exists():
+            bed_file = bed_dir_path
+    
     with bed_file.open() as f:
         for line in f:
             line = line.strip()
@@ -83,10 +90,22 @@ def main():
     sizes_mb = [float(s.strip()) for s in args.sizes.split(',')]
     sizes_mb = sorted(sizes_mb)
     
+    # Determine output directory: if output_prefix contains path, use bed/ directory
+    script_dir = Path(__file__).parent
+    output_prefix_path = Path(args.output_prefix)
+    
+    # If output_prefix has a parent directory, create it under bed/
+    if output_prefix_path.parent != Path('.'):
+        # e.g., "2q33/temp_WHS" -> "bed/2q33/temp_WHS"
+        output_dir = script_dir / "bed" / output_prefix_path.parent
+        output_prefix_name = output_prefix_path.name
+    else:
+        # e.g., "temp_WHS" -> "bed/temp_WHS"
+        output_dir = script_dir / "bed"
+        output_prefix_name = output_prefix_path.name
+    
     # Create output directory if needed
-    output_dir = Path(args.output_prefix).parent
-    if output_dir != Path('.'):
-        output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     
     created_files = []
     
@@ -107,8 +126,8 @@ def main():
                 new_start = 1
                 new_end = size_bp
         
-        # Create BED file
-        output_file = Path(f"{args.output_prefix}_{int(size_mb)}Mb.bed")
+        # Create BED file in bed/ directory
+        output_file = output_dir / f"{output_prefix_name}_{int(size_mb)}Mb.bed"
         create_bed_file(output_file, chrom, new_start, new_end, disease, 
                        ['loss', 'overlap', '-', '-', '-', '-'])
         
