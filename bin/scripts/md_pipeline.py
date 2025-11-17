@@ -100,6 +100,89 @@ def log_and_print(message):
     print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}")
 
 
+def check_step_completion(sample_analysis_dir, sample_id, bam_path, types):
+    """Check which steps are already completed
+    
+    Returns:
+        dict with keys: 'wc_orig', 'wc_fetus', 'wcx_orig', 'wcx_fetus', 'ff_yff', 'ff_seqff'
+        Each value is True if completed, False otherwise
+    """
+    completion = {
+        'wc_orig': False,
+        'wc_fetus': False,
+        'wcx_orig': False,
+        'wcx_fetus': False,
+        'ff_yff': False,
+        'ff_seqff': False
+    }
+    
+    # Check WC orig
+    wc_orig_npz = os.path.join(sample_analysis_dir, "Output_WC", "orig", f"{sample_id}.wc.orig.out.npz")
+    wc_orig_report = os.path.join(sample_analysis_dir, "Output_WC", "orig", f"{sample_id}.wc.orig.report.txt")
+    if os.path.exists(wc_orig_npz) and os.path.exists(wc_orig_report):
+        completion['wc_orig'] = True
+    
+    # Check WC fetus
+    wc_fetus_npz = os.path.join(sample_analysis_dir, "Output_WC", "fetus", f"{sample_id}.wc.fetus.out.npz")
+    wc_fetus_report = os.path.join(sample_analysis_dir, "Output_WC", "fetus", f"{sample_id}.wc.fetus.report.txt")
+    if os.path.exists(wc_fetus_npz) and os.path.exists(wc_fetus_report):
+        completion['wc_fetus'] = True
+    
+    # Check WCX orig
+    wcx_orig_npz = os.path.join(sample_analysis_dir, "Output_WCX", f"{sample_id}.wcx.proper_paired.npz")
+    wcx_orig_bed = os.path.join(sample_analysis_dir, "Output_WCX", "orig", f"{sample_id}.wcx.orig_aberrations.bed")
+    wcx_orig_plots = os.path.join(sample_analysis_dir, "Output_WCX", "orig", f"{sample_id}.wcx.orig.plots")
+    if os.path.exists(wcx_orig_npz) and os.path.exists(wcx_orig_bed) and os.path.exists(wcx_orig_plots):
+        completion['wcx_orig'] = True
+    
+    # Check WCX fetus
+    wcx_fetus_npz = os.path.join(sample_analysis_dir, "Output_WCX", f"{sample_id}.wcx.of_fetus.npz")
+    wcx_fetus_bed = os.path.join(sample_analysis_dir, "Output_WCX", "fetus", f"{sample_id}.wcx.fetus_aberrations.bed")
+    wcx_fetus_plots = os.path.join(sample_analysis_dir, "Output_WCX", "fetus", f"{sample_id}.wcx.fetus.plots")
+    if os.path.exists(wcx_fetus_npz) and os.path.exists(wcx_fetus_bed) and os.path.exists(wcx_fetus_plots):
+        completion['wcx_fetus'] = True
+    
+    # Check FF - YFF and seqFF
+    ff_dir = os.path.join(sample_analysis_dir, "Output_FF")
+    if os.path.exists(ff_dir):
+        # Check for YFF result (check if gender.txt exists and contains YFF info)
+        gender_file = os.path.join(ff_dir, f"{sample_id}.gender.txt")
+        ff_txt = os.path.join(ff_dir, f"{sample_id}.fetal_fraction.txt")
+        
+        # Check seqFF file
+        seqff_file = os.path.join(ff_dir, f"{sample_id}.seqff.txt")
+        if os.path.exists(seqff_file):
+            try:
+                import pandas as pd
+                df = pd.read_csv(seqff_file, index_col=0)
+                if "SeqFF" in df.index:
+                    completion['ff_seqff'] = True
+            except:
+                pass
+        
+        # Check YFF - if gender.txt exists and fetal_fraction.txt has YFF value
+        if os.path.exists(ff_txt):
+            try:
+                with open(ff_txt, 'r') as f:
+                    content = f.read()
+                    # Check if YFF value is present (not just 0 or empty)
+                    if "YFF" in content or "yff" in content:
+                        # Try to parse JSON if it's JSON format
+                        try:
+                            import json
+                            ff_data = json.loads(content)
+                            if ff_data.get("yff", 0) > 0 or ff_data.get("YFF", 0) > 0:
+                                completion['ff_yff'] = True
+                        except:
+                            # Not JSON, check if it's a text file with YFF info
+                            if "YFF" in content and "0.00" not in content.split("YFF")[1][:10]:
+                                completion['ff_yff'] = True
+            except:
+                pass
+    
+    return completion
+
+
 def find_bam_file(analysis_dir, work_dir, sample_id):
     """
     Find BAM file for the sample.
@@ -534,19 +617,28 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
     npz_file = os.path.join(wcx_base_dir, f"{sample_id}.wcx.{bam_name_parts}.npz")
     
     # Check if output NPZ already exists (skip this check if skip_npz is True)
+    out_prefix = os.path.join(wcx_type_dir, f"{sample_id}.wcx.{bam_type}")
+    aberrations_bed = f"{out_prefix}_aberrations.bed"
+    plots_dir = f"{out_prefix}.plots"
+    need_plots_only = False
+    
     if not skip_npz and not force and os.path.exists(npz_file):
-        # Also check if aberrations.bed exists
-        out_prefix = os.path.join(wcx_type_dir, f"{sample_id}.wcx.{bam_type}")
-        aberrations_bed = f"{out_prefix}_aberrations.bed"
-        if os.path.exists(aberrations_bed):
+        # Also check if aberrations.bed and plots exist
+        if os.path.exists(aberrations_bed) and os.path.exists(plots_dir):
             log_and_print(f"[SKIP] WCX {bam_type} NPZ file already exists: {npz_file}")
             log_and_print(f"[SKIP] WCX {bam_type} output file already exists: {aberrations_bed}")
+            log_and_print(f"[SKIP] WCX {bam_type} plots already exist: {plots_dir}")
             log_and_print(f"[SKIP] Skipping WisecondorX analysis for {bam_type}")
             return True
+        elif os.path.exists(aberrations_bed) and not os.path.exists(plots_dir):
+            log_and_print(f"[WARNING] WCX {bam_type} output exists but plots missing: {plots_dir}")
+            log_and_print(f"[INFO] Will regenerate plots by running WCX predict with --plot option")
+            # NPZ already exists, skip convert step but still run predict with --plot
+            need_plots_only = True
     
     try:
         # Step 1: Convert BAM to NPZ
-        if skip_npz:
+        if skip_npz or need_plots_only:
             log_and_print(f"[SKIP-NPZ] Skipping NPZ file creation, using existing: {npz_file}")
             if not os.path.exists(npz_file):
                 log_and_print(f"[ERROR] NPZ file not found: {npz_file}")
@@ -593,7 +685,6 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
         wcx_threshold = None
         if not ignore_zscore and config_file and os.path.exists(config_file):
             try:
-                import json
                 with open(config_file, 'r') as f:
                     config_data = json.load(f)
                     if "WCX" in config_data:
@@ -619,8 +710,9 @@ def run_wisecondorx(sample_id, bam_file, reference_dir, sample_dir, plots_dir, g
             "--regions", "/Work/NIPT/data/empty_regions.txt"
         ]
         
-        # Add --plot option (skip if skip_npz is True)
-        if not skip_npz:
+        # Add --plot option (always add if plots are needed, even if skip_npz is True)
+        # If need_plots_only is True, we need to generate plots even though NPZ conversion was skipped
+        if not skip_npz or need_plots_only:
             predict_cmd.insert(-2, "--plot")  # Insert before --regions
         
         # Add --zscore option
@@ -853,17 +945,28 @@ def calculate_seqff(sample_name, bam_path, force=False):
     original_cwd = os.getcwd()
     seqff_dir = "/opt/nipt/bin/scripts/seqFF_R"
 
-    cmd = f"{rscript} --vanilla {seqff_r_script} -f {bam_path} -o {seqff_txt}"
+    cmd = f"cd {seqff_dir} && {rscript} --vanilla {seqff_r_script} -f {bam_path} -o {seqff_txt}"
+    log_and_print(f"Running seqFF command: {cmd}")
     try:
-        os.chdir(seqff_dir)
-        subprocess.run(cmd, shell=True, check=True)
+        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
         log_and_print(f"Official seqFF output written to: {seqff_txt}")
-    except subprocess.CalledProcessError:
-        log_and_print("R-based seqFF failed to run.")
-        os.chdir(original_cwd)
+        if result.stdout:
+            log_and_print(f"seqFF stdout (last 500 chars): {result.stdout[-500:]}")
+    except subprocess.CalledProcessError as e:
+        log_and_print(f"R-based seqFF failed to run with exit code {e.returncode}")
+        if e.returncode == 137:
+            log_and_print("ERROR: seqFF process was killed due to out-of-memory (OOM kill)")
+            log_and_print("This may happen with large BAM files. Consider increasing Docker memory limit or using a smaller BAM file.")
+        if e.stderr:
+            log_and_print(f"R stderr: {e.stderr}")
+        if e.stdout:
+            log_and_print(f"R stdout: {e.stdout}")
         return {"seqff_value": 0, "seqff_file": None}
-    finally:
-        os.chdir(original_cwd)
+    except Exception as e:
+        log_and_print(f"Unexpected error running seqFF: {e}")
+        import traceback
+        log_and_print(f"Traceback: {traceback.format_exc()}")
+        return {"seqff_value": 0, "seqff_file": None}
 
     # Parse seqFF result
     try:
@@ -875,48 +978,188 @@ def calculate_seqff(sample_name, bam_path, force=False):
         return {"seqff_value": 0, "seqff_file": seqff_txt}
 
 
-def calculate_fetal_fraction(sample_id, bam_path, ff_config, lab_bed_paths, force=False):
+def calculate_fetal_fraction(sample_id, bam_path, ff_config, lab_bed_paths, force=False, skip_seqff=False):
     """Calculate fetal fraction using YFF and seqFF
     
     Args:
         force: If True, force re-run even if output files exist
+        skip_seqff: If True, skip seqFF calculation (useful when OOM kill occurs)
     """
     log_and_print(f"\n=== Calculating Fetal Fraction for {sample_id} ===")
     
     ff_results = {}
     
-    # YFF calculation
-    yff_result = calculate_yff(sample_id, bam_path, ff_config, lab_bed_paths)
-    if yff_result["status"] == "OK":
-        yff_value = round(yff_result.get("YFF1", 0), 2)
-        detected_gender = "MALE" if yff_result.get("gd_1_gender") == "XY" else "FEMALE"
-        ff_results["yff"] = {
-            "yff_value": yff_value,
-            "gender": detected_gender,
-            "status": "OK"
-        }
-        log_and_print(f"YFF: {yff_value:.2f}% (detected gender: {detected_gender})")
-        
-        # Warn if detected gender doesn't match expected gender from sample_id
-        if "_M" in sample_id and detected_gender == "FEMALE":
-            log_and_print(f"WARNING: Sample ID suggests Male (_M) but YFF detected Female")
-        elif "_F" in sample_id and detected_gender == "MALE":
-            log_and_print(f"WARNING: Sample ID suggests Female (_F) but YFF detected Male")
-    else:
-        ff_results["yff"] = {
-            "yff_value": 0,
-            "gender": "UNKNOWN",
-            "status": yff_result.get("status", "FAILED")
-        }
-        log_and_print(f"YFF calculation failed: {yff_result.get('status', 'FAILED')}")
+    # Check if YFF already exists
+    sample_dir = os.path.dirname(bam_path)
+    ff_dir = os.path.join(sample_dir, "Output_FF")
+    ff_txt = os.path.join(ff_dir, f"{sample_id}.fetal_fraction.txt")
     
-    # seqFF calculation
-    seqff_result = calculate_seqff(sample_id, bam_path, force=force)
-    ff_results["seqff"] = {
-        "seqff_value": seqff_result.get("seqff_value", 0),
-        "status": "OK" if seqff_result.get("seqff_value", 0) > 0 else "FAILED"
-    }
-    log_and_print(f"seqFF: {ff_results['seqff']['seqff_value']:.2f}%")
+    yff_exists = False
+    seqff_exists = False
+    
+    if not force and os.path.exists(ff_txt):
+        try:
+            with open(ff_txt, 'r') as f:
+                existing_ff = json.load(f)
+                if existing_ff.get("yff", 0) > 0 or existing_ff.get("YFF", 0) > 0:
+                    yff_exists = True
+                    log_and_print(f"[SKIP] YFF already calculated: {existing_ff.get('yff', existing_ff.get('YFF', 0)):.2f}%")
+        except:
+            pass
+    
+    # YFF calculation (skip if exists and not force)
+    if not force and yff_exists:
+        # Load existing YFF value
+        try:
+            with open(ff_txt, 'r') as f:
+                existing_ff = json.load(f)
+                yff_value = existing_ff.get("yff", existing_ff.get("YFF", 0))
+                detected_gender = existing_ff.get("yff_gender", "UNKNOWN")
+                if detected_gender == "MALE" or detected_gender == "M":
+                    detected_gender = "MALE"
+                elif detected_gender == "FEMALE" or detected_gender == "F":
+                    detected_gender = "FEMALE"
+                else:
+                    detected_gender = "UNKNOWN"
+                
+                ff_results["yff"] = {
+                    "yff_value": yff_value,
+                    "gender": detected_gender,
+                    "status": "OK"
+                }
+        except:
+            # If can't load, calculate
+            yff_result = calculate_yff(sample_id, bam_path, ff_config, lab_bed_paths)
+            if yff_result["status"] == "OK":
+                yff_value = round(yff_result.get("YFF1", 0), 2)
+                detected_gender = "MALE" if yff_result.get("gd_1_gender") == "XY" else "FEMALE"
+                ff_results["yff"] = {
+                    "yff_value": yff_value,
+                    "gender": detected_gender,
+                    "status": "OK"
+                }
+                log_and_print(f"YFF: {yff_value:.2f}% (detected gender: {detected_gender})")
+            else:
+                ff_results["yff"] = {
+                    "yff_value": 0,
+                    "gender": "UNKNOWN",
+                    "status": yff_result.get("status", "FAILED")
+                }
+                log_and_print(f"YFF calculation failed: {yff_result.get('status', 'FAILED')}")
+    else:
+        # Calculate YFF
+        yff_result = calculate_yff(sample_id, bam_path, ff_config, lab_bed_paths)
+        if yff_result["status"] == "OK":
+            yff_value = round(yff_result.get("YFF1", 0), 2)
+            detected_gender = "MALE" if yff_result.get("gd_1_gender") == "XY" else "FEMALE"
+            ff_results["yff"] = {
+                "yff_value": yff_value,
+                "gender": detected_gender,
+                "status": "OK"
+            }
+            log_and_print(f"YFF: {yff_value:.2f}% (detected gender: {detected_gender})")
+            
+            # Warn if detected gender doesn't match expected gender from sample_id
+            if "_M" in sample_id and detected_gender == "FEMALE":
+                log_and_print(f"WARNING: Sample ID suggests Male (_M) but YFF detected Female")
+            elif "_F" in sample_id and detected_gender == "MALE":
+                log_and_print(f"WARNING: Sample ID suggests Female (_F) but YFF detected Male")
+        else:
+            ff_results["yff"] = {
+                "yff_value": 0,
+                "gender": "UNKNOWN",
+                "status": yff_result.get("status", "FAILED")
+            }
+            log_and_print(f"YFF calculation failed: {yff_result.get('status', 'FAILED')}")
+    
+    # Check if seqFF already exists
+    seqff_file = os.path.join(ff_dir, f"{sample_id}.seqff.txt")
+    if not force and os.path.exists(seqff_file):
+        try:
+            import pandas as pd
+            df = pd.read_csv(seqff_file, index_col=0)
+            if "SeqFF" in df.index:
+                seqff_exists = True
+                seqff_value = float(df.loc["SeqFF", "x"]) * 100
+                log_and_print(f"[SKIP] seqFF already calculated: {seqff_value:.2f}%")
+        except:
+            pass
+    
+    # Determine gender for FF calculation logic
+    detected_gender = ff_results.get("yff", {}).get("gender", "UNKNOWN")
+    if detected_gender == "MALE" or detected_gender == "M":
+        is_male = True
+    elif detected_gender == "FEMALE" or detected_gender == "F":
+        is_male = False
+    else:
+        # If gender is unknown, assume Female (seqFF will be calculated)
+        is_male = False
+    
+    # seqFF calculation logic based on gender:
+    # - Female: seqFF is REQUIRED (must run)
+    # - Male: seqFF is also required (both YFF and seqFF needed)
+    # - skip_seqff option can override this for testing/debugging
+    if skip_seqff:
+        log_and_print("[SKIP] seqFF calculation skipped (--skip-seqff option)")
+        ff_results["seqff"] = {
+            "seqff_value": 0,
+            "status": "SKIPPED"
+        }
+    elif not force and seqff_exists:
+        # Load existing seqFF result
+        try:
+            import pandas as pd
+            df = pd.read_csv(seqff_file, index_col=0)
+            seqff_value = float(df.loc["SeqFF", "x"]) * 100
+            ff_results["seqff"] = {
+                "seqff_value": round(seqff_value, 2),
+                "status": "OK"
+            }
+            log_and_print(f"[SKIP] seqFF already calculated: {seqff_value:.2f}%")
+        except:
+            # If can't load, calculate
+            log_and_print(f"[WARNING] Could not load existing seqFF, will recalculate")
+            try:
+                seqff_result = calculate_seqff(sample_id, bam_path, force=force)
+                ff_results["seqff"] = {
+                    "seqff_value": seqff_result.get("seqff_value", 0),
+                    "status": "OK" if seqff_result.get("seqff_value", 0) > 0 else "FAILED"
+                }
+                log_and_print(f"seqFF: {ff_results['seqff']['seqff_value']:.2f}%")
+            except Exception as e:
+                log_and_print(f"ERROR: seqFF calculation failed: {e}")
+                if is_male:
+                    log_and_print("WARNING: seqFF failed for Male sample (YFF will be used)")
+                else:
+                    log_and_print("ERROR: seqFF is REQUIRED for Female samples but calculation failed!")
+                ff_results["seqff"] = {
+                    "seqff_value": 0,
+                    "status": "FAILED"
+                }
+    else:
+        # Calculate seqFF (required for both Male and Female)
+        if is_male:
+            log_and_print("Calculating seqFF for Male sample (both YFF and seqFF will be used)")
+        else:
+            log_and_print("Calculating seqFF for Female sample (seqFF is required)")
+        
+        try:
+            seqff_result = calculate_seqff(sample_id, bam_path, force=force)
+            ff_results["seqff"] = {
+                "seqff_value": seqff_result.get("seqff_value", 0),
+                "status": "OK" if seqff_result.get("seqff_value", 0) > 0 else "FAILED"
+            }
+            log_and_print(f"seqFF: {ff_results['seqff']['seqff_value']:.2f}%")
+        except Exception as e:
+            log_and_print(f"ERROR: seqFF calculation failed: {e}")
+            if is_male:
+                log_and_print("WARNING: seqFF failed for Male sample (YFF will be used)")
+            else:
+                log_and_print("ERROR: seqFF is REQUIRED for Female samples but calculation failed!")
+            ff_results["seqff"] = {
+                "seqff_value": 0,
+                "status": "FAILED"
+            }
     
     # Determine final FF
     min_threshold = ff_config.get("ff_min_threshold", 2.0)
@@ -1102,6 +1345,8 @@ def main():
                         help='Skip WC/WCX analysis and only run MD detection (use existing NPZ files)')
     parser.add_argument('--skip-npz', action='store_true',
                         help='Skip NPZ file creation for WC/WCX (use existing NPZ files, faster execution)')
+    parser.add_argument('--skip-seqff', action='store_true',
+                        help='Skip seqFF calculation (useful when OOM kill occurs)')
     
     args = parser.parse_args()
     
@@ -1122,6 +1367,7 @@ def main():
     force_execution = args.force
     result_only = args.result_only
     skip_npz = args.skip_npz
+    skip_seqff = args.skip_seqff
     
     # Setup directories
     sample_analysis_dir = os.path.join(analysis_dir, work_dir, sample_id)
@@ -1251,17 +1497,47 @@ def main():
     
     orig_bam, fetus_bam = process_bam_filters(sample_id, sample_analysis_dir, bed_file, filter_type)
     
+    # Check completion status for each step
+    if not force_execution:
+        log_and_print("\n=== Checking completion status ===")
+        completion = check_step_completion(sample_analysis_dir, sample_id, bam_path, types)
+        
+        log_and_print(f"WC orig: {'✓ Completed' if completion['wc_orig'] else '✗ Missing'}")
+        if fetus_bam and os.path.exists(fetus_bam):
+            log_and_print(f"WC fetus: {'✓ Completed' if completion['wc_fetus'] else '✗ Missing'}")
+        log_and_print(f"WCX orig: {'✓ Completed' if completion['wcx_orig'] else '✗ Missing'}")
+        if fetus_bam and os.path.exists(fetus_bam):
+            log_and_print(f"WCX fetus: {'✓ Completed' if completion['wcx_fetus'] else '✗ Missing'}")
+        log_and_print(f"FF YFF: {'✓ Completed' if completion['ff_yff'] else '✗ Missing'}")
+        log_and_print(f"FF seqFF: {'✓ Completed' if completion['ff_seqff'] else '✗ Missing'}")
+    else:
+        completion = {
+            'wc_orig': False,
+            'wc_fetus': False,
+            'wcx_orig': False,
+            'wcx_fetus': False,
+            'ff_yff': False,
+            'ff_seqff': False
+        }
+        log_and_print("\n=== Force mode: Re-running all steps ===")
+    
     # Step 3: Run Wisecondor for orig and fetus
     log_and_print("\n=== Step 3: Running Wisecondor ===")
     
     # 3.1: WiseCONDOR on orig
-    log_and_print("Running WiseCONDOR on orig BAM...")
-    run_wisecondor(sample_id, bam_path, reference_dir, sample_analysis_dir, None, bam_type="orig", force=force_execution, skip_npz=skip_npz)
+    if not force_execution and completion['wc_orig']:
+        log_and_print("[SKIP] WC orig already completed, skipping...")
+    else:
+        log_and_print("Running WiseCONDOR on orig BAM...")
+        run_wisecondor(sample_id, bam_path, reference_dir, sample_analysis_dir, None, bam_type="orig", force=force_execution, skip_npz=skip_npz)
     
     # 3.2: WiseCONDOR on fetus (if available)
     if fetus_bam and os.path.exists(fetus_bam):
-        log_and_print("Running WiseCONDOR on fetus BAM...")
-        run_wisecondor(sample_id, fetus_bam, reference_dir, sample_analysis_dir, None, bam_type="fetus", force=force_execution, skip_npz=skip_npz)
+        if not force_execution and completion['wc_fetus']:
+            log_and_print("[SKIP] WC fetus already completed, skipping...")
+        else:
+            log_and_print("Running WiseCONDOR on fetus BAM...")
+            run_wisecondor(sample_id, fetus_bam, reference_dir, sample_analysis_dir, None, bam_type="fetus", force=force_execution, skip_npz=skip_npz)
     
     # Step 4: Run WisecondorX (with gender-specific reference)
     log_and_print("\n=== Step 4: Running WisecondorX ===")
@@ -1270,13 +1546,19 @@ def main():
     config_file = os.path.join("/Work/NIPT/config", labcode, "pipeline_config.json")
     
     # 4.1: WiseCONDORX on orig
-    log_and_print("Running WiseCONDORX on orig BAM...")
-    run_wisecondorx(sample_id, bam_path, reference_dir, sample_analysis_dir, None, gender, bam_type="orig", force=force_execution, ignore_zscore=ignore_zscore, config_file=config_file, skip_npz=skip_npz)
+    if not force_execution and completion['wcx_orig']:
+        log_and_print("[SKIP] WCX orig already completed, skipping...")
+    else:
+        log_and_print("Running WiseCONDORX on orig BAM...")
+        run_wisecondorx(sample_id, bam_path, reference_dir, sample_analysis_dir, None, gender, bam_type="orig", force=force_execution, ignore_zscore=ignore_zscore, config_file=config_file, skip_npz=skip_npz)
     
     # 4.2: WiseCONDORX on fetus (if available)
     if fetus_bam and os.path.exists(fetus_bam):
-        log_and_print("Running WiseCONDORX on fetus BAM...")
-        run_wisecondorx(sample_id, fetus_bam, reference_dir, sample_analysis_dir, None, gender, bam_type="fetus", force=force_execution, ignore_zscore=ignore_zscore, config_file=config_file, skip_npz=skip_npz)
+        if not force_execution and completion['wcx_fetus']:
+            log_and_print("[SKIP] WCX fetus already completed, skipping...")
+        else:
+            log_and_print("Running WiseCONDORX on fetus BAM...")
+            run_wisecondorx(sample_id, fetus_bam, reference_dir, sample_analysis_dir, None, gender, bam_type="fetus", force=force_execution, ignore_zscore=ignore_zscore, config_file=config_file, skip_npz=skip_npz)
     
     # Step 5: Run MD Detection
     log_and_print("\n=== Step 5: Running MD Detection ===")
@@ -1289,26 +1571,48 @@ def main():
     
     # Step 6: Calculate Fetal Fraction and update JSON
     log_and_print("\n=== Step 6: Calculating Fetal Fraction ===")
-    # Get FF config (default values if config file doesn't exist)
-    ff_config = {
-        "ff_min_threshold": 2.0,
-        "ff_max_threshold": 40.0,
-        "gd_1_threshold": 0.01
-    }
     
-    # Try to load config from config file if available
-    config_file = os.path.join("/Work/NIPT/config", labcode, "pipeline_config.json")
-    if os.path.exists(config_file):
-        try:
-            with open(config_file, 'r') as f:
-                config_data = json.load(f)
-                if "FF_Gender_Config" in config_data:
-                    ff_config.update(config_data["FF_Gender_Config"])
-        except Exception as e:
-            log_and_print(f"Warning: Could not load FF config from {config_file}: {e}")
+    # Check if FF is already complete
+    ff_complete = completion['ff_yff'] and completion['ff_seqff']
+    if not force_execution and ff_complete:
+        log_and_print("[SKIP] Fetal Fraction already calculated (both YFF and seqFF present), skipping...")
+        # Load existing FF results if available
+        ff_txt = os.path.join(sample_analysis_dir, "Output_FF", f"{sample_id}.fetal_fraction.txt")
+        ff_results = None
+        if os.path.exists(ff_txt):
+            try:
+                with open(ff_txt, 'r') as f:
+                    ff_results = json.load(f)
+            except:
+                pass
+        
+        if ff_results is None:
+            # If can't load, still calculate
+            ff_complete = False
     
-    # Calculate FF
-    ff_results = calculate_fetal_fraction(sample_id, bam_path, ff_config, lab_bed_paths, force=force_execution)
+    if not ff_complete:
+        # Get FF config (default values if config file doesn't exist)
+        ff_config = {
+            "ff_min_threshold": 2.0,
+            "ff_max_threshold": 40.0,
+            "gd_1_threshold": 0.01
+        }
+        
+        # Try to load config from config file if available
+        config_file = os.path.join("/Work/NIPT/config", labcode, "pipeline_config.json")
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r') as f:
+                    config_data = json.load(f)
+                    if "FF_Gender_Config" in config_data:
+                        ff_config.update(config_data["FF_Gender_Config"])
+            except Exception as e:
+                log_and_print(f"Warning: Could not load FF config from {config_file}: {e}")
+        
+        # Calculate FF
+        ff_results = calculate_fetal_fraction(sample_id, bam_path, ff_config, lab_bed_paths, force=force_execution, skip_seqff=skip_seqff)
+    else:
+        log_and_print("Using existing Fetal Fraction results")
     
     # Update JSON file with FF results
     update_json_with_ff(sample_analysis_dir, sample_id, ff_results)

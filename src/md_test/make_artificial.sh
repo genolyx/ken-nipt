@@ -58,6 +58,14 @@ for x in MOM_BAM FETUS_BAM FF_MAP MD_BED FF_TGT READS OUTDIR; do
 done
 [[ -s "$MOM_BAM" && -s "$FETUS_BAM" && -s "$FF_MAP" && -s "$MD_BED" ]] || { echo "Input file missing"; exit 1; }
 
+# Check for required tools
+for tool in samtools bedtools; do
+  if ! command -v "$tool" &> /dev/null; then
+    echo "Error: $tool not found in PATH. Please ensure it is installed and available." >&2
+    exit 1
+  fi
+done
+
 mkdir -p "$OUTDIR"
 
 # ------------- helpers -------------
@@ -70,7 +78,12 @@ bname() {
 }
 sam_count_reads() { # count reads (using properly paired primary alignments with MAPQ>=30)
   local bam="$1"
-  samtools view -c -f 2 -F 256 -F 2048 -q 30 "$bam" 2>/dev/null || echo "0"
+  if ! command -v samtools &> /dev/null; then
+    echo "Error: samtools not found in PATH" >&2
+    echo "0"
+    return 1
+  fi
+  samtools view -c -f 2 -F 256 -F 2048 -q 30 "$bam" 2>&1 || echo "0"
 }
 ff_lookup() { # from ff_map.tsv: sample_id \t ff_percent
   local sid="$1"
@@ -201,7 +214,16 @@ echo "[INFO] quotas: A=${A_reads} reads ($((A_reads/2)) pairs), B=${B_reads} rea
 # ------------- compute subsample fractions relative to current sizes -------------
 A_total=$(sam_count_reads "$MOM_BAM")
 B_total=$(sam_count_reads "$FETUS_BAM")
-[[ "$A_total" -gt 0 && "$B_total" -gt 0 ]] || { echo "Zero reads in input"; exit 1; }
+if [[ "$A_total" -eq 0 ]]; then
+  echo "Error: No reads found in mom BAM file: $MOM_BAM" >&2
+  echo "  (MAPQ>=30, properly paired reads count: $A_total)" >&2
+  exit 1
+fi
+if [[ "$B_total" -eq 0 ]]; then
+  echo "Error: No reads found in fetus BAM file: $FETUS_BAM" >&2
+  echo "  (MAPQ>=30, properly paired reads count: $B_total)" >&2
+  exit 1
+fi
 
 pA=$(awk -v need="$A_reads" -v tot="$A_total" 'BEGIN{printf "%.6f", (tot>0 ? need/tot : 0)}')
 pB=$(awk -v need="$B_reads" -v tot="$B_total" 'BEGIN{printf "%.6f", (tot>0 ? need/tot : 0)}')

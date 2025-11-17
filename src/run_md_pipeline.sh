@@ -18,6 +18,7 @@ Usage: run_md_pipeline.sh \
   [--ignore-min-length] \
   [--ignore-zscore] \
   [--skip-npz] \
+  [--skip-seqff] \
   [--no-log] [--detached] [-f|--force] [-ro|--result-only] [-h]
 
 Examples:
@@ -62,6 +63,7 @@ FILTER_TYPE="of"
 IGNORE_MIN_LENGTH=false
 IGNORE_ZSCORE=false
 SKIP_NPZ=false
+SKIP_SEQFF=false
 RESULT_ONLY=false
 
 # 인자 파싱
@@ -78,6 +80,7 @@ while [[ $# -gt 0 ]]; do
         --ignore-min-length) IGNORE_MIN_LENGTH=true; shift ;;
         --ignore-zscore) IGNORE_ZSCORE=true; shift ;;
         --skip-npz) SKIP_NPZ=true; shift ;;
+        --skip-seqff) SKIP_SEQFF=true; shift ;;
         --no-log) ENABLE_LOGGING=false; shift ;;
         --detached) DETACHED_MODE=true; shift ;;
         -f|--force) FORCE_EXECUTION=true; shift ;;
@@ -211,6 +214,11 @@ if [[ "$SKIP_NPZ" == true ]]; then
     DOCKER_ARGS+=("--skip-npz")
 fi
 
+# Skip seqFF 옵션 추가
+if [[ "$SKIP_SEQFF" == true ]]; then
+    DOCKER_ARGS+=("--skip-seqff")
+fi
+
 # Force 옵션 추가
 if [[ "$FORCE_EXECUTION" == true ]]; then
     DOCKER_ARGS+=("--force")
@@ -236,7 +244,13 @@ echo "  python3 /Work/NIPT/bin/scripts/md_pipeline.py ${DOCKER_ARGS[*]}"
 echo ""
 
 # Detached 모드로 실행하되 로그 캡처
-CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
+# Add memory limit to prevent OOM kill (seqFF R script loads entire BAM into memory)
+# Set to 128GB to handle large BAM files with seqFF (R's scanBam loads entire BAM into memory)
+# For 15M reads, R may need 64-128GB due to data.frame overhead
+CONTAINER_ID=$("$DOCKER_BIN" run -d \
+    --memory="128g" \
+    --memory-swap="128g" \
+    --oom-kill-disable=false \
     --user "${USER_UID}:${USER_GID}" \
     --name "$CONTAINER_NAME" \
     -e TZ=Asia/Seoul \
