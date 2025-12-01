@@ -9,8 +9,7 @@ Scans artificial sample analysis directories and extracts:
 
 Usage:
     python3 extract_zscore_and_length.py \
-        -r /home/ken/ken-nipt \
-        -w md_validation/1p36 \
+        -i /data/md_validation/1p36 \
         -o zscore_extraction.tsv
 """
 
@@ -311,16 +310,10 @@ def main():
         description="Extract z-scores and deletion lengths from artificial sample analysis results"
     )
     parser.add_argument(
-        '-r', '--root',
+        '-i', '--input',
         type=Path,
         required=True,
-        help='Root directory (e.g., /home/ken/ken-nipt)'
-    )
-    parser.add_argument(
-        '-w', '--work_dir',
-        type=str,
-        required=True,
-        help='Work directory relative to root/analysis (e.g., md_validation/1p36)'
+        help='Input directory containing sample directories (e.g., /data/md_validation/1p36 or /home/ken/ken-nipt/analysis/md_validation/1p36)'
     )
     parser.add_argument(
         '-o', '--output',
@@ -331,14 +324,18 @@ def main():
     
     args = parser.parse_args()
     
-    # Construct analysis directory path
-    analysis_dir = args.root / "analysis" / args.work_dir
+    # Use input directory directly
+    analysis_dir = args.input
     
     if not analysis_dir.exists():
-        logger.error(f"Analysis directory not found: {analysis_dir}")
+        logger.error(f"Input directory not found: {analysis_dir}")
         return 1
     
-    logger.info(f"Scanning analysis directory: {analysis_dir}")
+    if not analysis_dir.is_dir():
+        logger.error(f"Input path is not a directory: {analysis_dir}")
+        return 1
+    
+    logger.info(f"Scanning input directory: {analysis_dir}")
     
     # Find all sample directories (containing JSON files)
     sample_dirs = []

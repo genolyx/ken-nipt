@@ -597,7 +597,7 @@ def main():
     
     for bed_path_str in bed_files_str:
         bed_path_str = bed_path_str.strip()
-        bed_path = Path(bed_path_str)
+        bed_path = Path(bed_path_str).expanduser()  # Expand ~ to home directory
         
         # If relative path, try relative to script directory first
         if not bed_path.is_absolute():

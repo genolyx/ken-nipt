@@ -133,22 +133,17 @@ if [[ -n "$FETAL_GENDER" ]]; then
 fi
 echo "========================================="
 
-# 마커 파일 확인
+# 마커 파일 확인 (참고용, 실제 체크는 Python 스크립트에서 수행)
 PIPELINE_MARKER="$HOST_ANALYSIS_DIR/${SAMPLE_ID}/${SAMPLE_ID}.md_pipeline_completed.marker"
-
-# Result-only 모드에서는 마커 체크를 skip (MD detection만 수행하므로)
-if [[ "$RESULT_ONLY" = false ]]; then
-    if [[ "$FORCE_EXECUTION" = false && -f "$PIPELINE_MARKER" ]]; then
-        echo "=== SKIPPING: MD analysis already completed. Use -f to force or -ro to re-run MD detection only ==="
-        exit 0
-    fi
-fi
 
 # Force 모드: 마커 삭제
 if [ "$FORCE_EXECUTION" = true ]; then
-    echo "=== FORCE MODE: Removing previous marker and results ==="
+    echo "=== FORCE MODE: Removing previous marker ==="
     rm -f "$PIPELINE_MARKER"
 fi
+
+# Note: Marker 파일 체크는 Python 스크립트(md_pipeline.py)에서 실제 결과 파일을 확인한 후 수행됩니다.
+# Marker 파일만으로 skip하지 않고, 실제 결과 파일(FF, WC, WCX)이 모두 있는지 확인합니다.
 
 # Result-only 모드에서는 BAM 파일 체크를 skip
 if [[ "$RESULT_ONLY" = false ]]; then

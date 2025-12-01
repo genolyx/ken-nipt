@@ -29,6 +29,157 @@ __author__ = 'Based on run_batch_dev.py'
 __version__ = '0.1'
 
 
+def get_gender_from_json(sample_dir, sample_name):
+    """Read gender from sample JSON file"""
+    json_file = sample_dir / f"{sample_name}.json"
+    if json_file.exists():
+        try:
+            with open(json_file, 'r') as f:
+                data = json.load(f)
+                gender = data.get('gender', '').upper()
+                if gender in ['M', 'MALE', 'XY']:
+                    return 'MALE'
+                elif gender in ['F', 'FEMALE', 'XX']:
+                    return 'FEMALE'
+        except Exception as e:
+            logger.debug(f"Could not read gender from {json_file}: {e}")
+    return 'UNKNOWN'
+
+
+def check_all_results_exist(root_dir, work_dir, sample_name, filter_type="of"):
+    """Check if all required output files exist for a sample
+    
+    Checks for:
+    - Marker file: {sample_name}.md_pipeline_completed.marker (checked first)
+    - Output_FF: Based on gender
+      - Female: seqFF only required
+      - Male: both YFF and seqFF required
+      - Unknown: seqFF only required
+    - Output_WC/orig: wc.orig.out.npz and wc.orig.report.txt
+    - Output_WC/fetus: wc.fetus.out.npz and wc.fetus.report.txt
+    - Output_WCX/orig: wcx.proper_paired.npz, wcx.orig_aberrations.bed, wcx.orig.plots
+    - Output_WCX/fetus: wcx.of_fetus.npz, wcx.fetus_aberrations.bed, wcx.fetus.plots
+    
+    If any result file is missing, returns False (sample needs processing).
+    The pipeline will automatically create required BAM files (of_orig.bam, of_fetus.bam)
+    from proper_paired.bam if they don't exist.
+    
+    Args:
+        root_dir: Root directory
+        work_dir: Work directory
+        sample_name: Sample name
+        filter_type: Filter type (default: "of", reserved for future use)
+    
+    Returns:
+        bool: True if all required outputs exist (skip processing), False otherwise (needs processing)
+    """
+    sample_dir = Path(root_dir) / "analysis" / work_dir / sample_name
+    
+    # First, check for marker file (indicates pipeline completed successfully)
+    marker_file = sample_dir / f"{sample_name}.md_pipeline_completed.marker"
+    if marker_file.exists():
+        logger.debug(f"Marker file found for {sample_name}, considering as completed")
+        return True
+    
+    # Get gender from JSON file
+    gender = get_gender_from_json(sample_dir, sample_name)
+    
+    # Check Output_FF - requirements depend on gender
+    ff_dir = sample_dir / "Output_FF"
+    ff_yff_exists = False
+    ff_seqff_exists = False
+    
+    if ff_dir.exists():
+        # Check seqFF file
+        seqff_file = ff_dir / f"{sample_name}.seqff.txt"
+        if seqff_file.exists():
+            try:
+                df = pd.read_csv(seqff_file, index_col=0)
+                if "SeqFF" in df.index:
+                    ff_seqff_exists = True
+            except:
+                pass
+        
+        # Check YFF - check JSON file first (preferred method)
+        json_file = sample_dir / f"{sample_name}.json"
+        if json_file.exists():
+            try:
+                with open(json_file, 'r') as f:
+                    metadata = json.load(f)
+                
+                # Check calculated_ff section in JSON
+                calculated_ff = metadata.get("calculated_ff", {})
+                yff_status = calculated_ff.get("yff_status")
+                
+                # YFF exists if yff_status is "OK" (calculation completed)
+                if yff_status == "OK":
+                    ff_yff_exists = True
+            except:
+                pass
+        
+        # Fallback: also check fetal_fraction.txt file if JSON doesn't have YFF
+        if not ff_yff_exists:
+            ff_txt = ff_dir / f"{sample_name}.fetal_fraction.txt"
+            if ff_txt.exists():
+                try:
+                    with open(ff_txt, 'r') as f:
+                        content = f.read()
+                        if "YFF" in content or "yff" in content:
+                            try:
+                                ff_data = json.loads(content)
+                                if ff_data.get("yff", 0) > 0 or ff_data.get("YFF", 0) > 0:
+                                    ff_yff_exists = True
+                            except:
+                                if "YFF" in content and "0.00" not in content.split("YFF")[1][:10]:
+                                    ff_yff_exists = True
+                except:
+                    pass
+    
+    # Check FF completeness based on gender
+    if gender == 'FEMALE':
+        # Female: seqFF only required
+        ff_complete = ff_seqff_exists
+    elif gender == 'MALE':
+        # Male: both YFF and seqFF required
+        ff_complete = ff_yff_exists and ff_seqff_exists
+    else:
+        # Unknown: at least seqFF should exist
+        ff_complete = ff_seqff_exists
+    
+    # Check Output_WC/orig
+    wc_orig_npz = sample_dir / "Output_WC" / "orig" / f"{sample_name}.wc.orig.out.npz"
+    wc_orig_report = sample_dir / "Output_WC" / "orig" / f"{sample_name}.wc.orig.report.txt"
+    wc_orig_complete = wc_orig_npz.exists() and wc_orig_report.exists()
+    
+    # Check Output_WC/fetus
+    wc_fetus_npz = sample_dir / "Output_WC" / "fetus" / f"{sample_name}.wc.fetus.out.npz"
+    wc_fetus_report = sample_dir / "Output_WC" / "fetus" / f"{sample_name}.wc.fetus.report.txt"
+    wc_fetus_complete = wc_fetus_npz.exists() and wc_fetus_report.exists()
+    
+    # Check Output_WCX/orig
+    wcx_orig_npz = sample_dir / "Output_WCX" / f"{sample_name}.wcx.proper_paired.npz"
+    wcx_orig_bed = sample_dir / "Output_WCX" / "orig" / f"{sample_name}.wcx.orig_aberrations.bed"
+    wcx_orig_plots = sample_dir / "Output_WCX" / "orig" / f"{sample_name}.wcx.orig.plots"
+    wcx_orig_complete = wcx_orig_npz.exists() and wcx_orig_bed.exists() and wcx_orig_plots.exists()
+    
+    # Check Output_WCX/fetus
+    wcx_fetus_npz = sample_dir / "Output_WCX" / f"{sample_name}.wcx.of_fetus.npz"
+    wcx_fetus_bed = sample_dir / "Output_WCX" / "fetus" / f"{sample_name}.wcx.fetus_aberrations.bed"
+    wcx_fetus_plots = sample_dir / "Output_WCX" / "fetus" / f"{sample_name}.wcx.fetus.plots"
+    wcx_fetus_complete = wcx_fetus_npz.exists() and wcx_fetus_bed.exists() and wcx_fetus_plots.exists()
+    
+    # All components must be complete
+    # If any result is missing, the sample needs processing (pipeline will create BAM files if needed)
+    all_complete = ff_complete and wc_orig_complete and wc_fetus_complete and wcx_orig_complete and wcx_fetus_complete
+    
+    if all_complete:
+        logger.debug(f"All results exist for {sample_name}: FF={ff_complete} (yff={ff_yff_exists}, seqff={ff_seqff_exists}), "
+                     f"WC/orig={wc_orig_complete}, WC/fetus={wc_fetus_complete}, "
+                     f"WCX/orig={wcx_orig_complete}, WCX/fetus={wcx_fetus_complete}")
+    
+    return all_complete
+
+
 # Function to parse the output of 'docker ps -a' and update the process status dictionary
 def update_process_status(process_status, samples_dic, root_dir, force=False):
     """Update process status based on Docker containers and result files
@@ -50,12 +201,9 @@ def update_process_status(process_status, samples_dic, root_dir, force=False):
                 sample_info = samples_dic[sample_name]
                 work_dir = sample_info['work_dir']
                 
-                # Check if result file exists
-                # Result file: {root_dir}/analysis/{work_dir}/{sample_id}/Output_WCX/orig/{sample_id}.wcx.orig_aberrations.bed
-                result_file = Path(root_dir) / "analysis" / work_dir / sample_name / "Output_WCX" / "orig" / f"{sample_name}.wcx.orig_aberrations.bed"
-                
-                if result_file.exists():
-                    logger.info(f"Result file found for {sample_name}: {result_file}")
+                # Check if all required result files exist
+                if check_all_results_exist(root_dir, work_dir, sample_name):
+                    logger.info(f"All result files found for {sample_name}, marking as Completed")
                     process_status[sample_name] = "Completed"
                     continue
         
@@ -82,12 +230,9 @@ def update_process_status(process_status, samples_dic, root_dir, force=False):
                         sample_info = samples_dic[sample_name]
                         work_dir = sample_info['work_dir']
                         
-                        # Check marker file
-                        marker_file = Path(root_dir) / "analysis" / work_dir / sample_name / f"{sample_name}.md_pipeline_completed.marker"
-                        result_file = Path(root_dir) / "analysis" / work_dir / sample_name / "Output_WCX" / "orig" / f"{sample_name}.wcx.orig_aberrations.bed"
-                        
-                        if marker_file.exists() or (not force and result_file.exists()):
-                            logger.info(f"Container removed but marker/result found for {sample_name}, marking as Completed")
+                        # Check all result files (marker file is not sufficient, need actual results)
+                        if not force and check_all_results_exist(root_dir, work_dir, sample_name):
+                            logger.info(f"Container removed and all results found for {sample_name}, marking as Completed")
                             process_status[sample_name] = "Completed"
                         elif force:
                             # In force mode, if container was removed, assume completed (might be risky)
@@ -131,21 +276,25 @@ def update_process_status(process_status, samples_dic, root_dir, force=False):
                             if exit_code_match.returncode == 0:
                                 exit_code = exit_code_match.stdout.strip()
                                 if exit_code == "0":
-                                    # Check result file (skip if force=True)
+                                    # Check result file or marker file (skip if force=True)
                                     if sample_name in samples_dic:
                                         sample_info = samples_dic[sample_name]
                                         work_dir = sample_info['work_dir']
-                                        result_file = Path(root_dir) / "analysis" / work_dir / sample_name / "Output_WCX" / "orig" / f"{sample_name}.wcx.orig_aberrations.bed"
                                         if force:
                                             # In force mode, only check container exit code
                                             process_status[sample_name] = "Completed"
                                             containers_to_remove.append(container_name)
-                                        elif result_file.exists():
-                                            process_status[sample_name] = "Completed"
-                                            containers_to_remove.append(container_name)
                                         else:
-                                            # Container exited but no result file - might still be processing
-                                            process_status[sample_name] = "Running"
+                                            # Check all result files (marker file is not sufficient, need actual results)
+                                            if check_all_results_exist(root_dir, work_dir, sample_name):
+                                                # All result files exist (FF, WC, WCX)
+                                                process_status[sample_name] = "Completed"
+                                                containers_to_remove.append(container_name)
+                                            else:
+                                                # Container exited but result files are missing - need to re-run
+                                                logger.warning(f"Container {container_name} exited with code 0 but result files are missing for {sample_name}, will re-run")
+                                                process_status[sample_name] = "Init"  # Reset to Init so it can be re-run
+                                                containers_to_remove.append(container_name)
                                 else:
                                     # Container exited with error
                                     process_status[sample_name] = "Failed"
@@ -595,10 +744,9 @@ def run_daemon(cmd, labcode, sample_list, batch_output_dir, root_dir, work_dir, 
         for sample_name in samples_dic:
             sample_info = samples_dic[sample_name]
             work_dir = sample_info['work_dir']
-            result_file = Path(root_dir) / "analysis" / work_dir / sample_name / "Output_WCX" / "orig" / f"{sample_name}.wcx.orig_aberrations.bed"
             
-            if result_file.exists():
-                logger.info(f"Sample {sample_name} already completed (result file exists)")
+            if check_all_results_exist(root_dir, work_dir, sample_name):
+                logger.info(f"Sample {sample_name} already completed (all result files exist)")
                 process_status[sample_name] = "Completed"
     
     print_process_status(process_status)
@@ -606,8 +754,19 @@ def run_daemon(cmd, labcode, sample_list, batch_output_dir, root_dir, work_dir, 
     # Continuously check if additional samples need to be started
     while True:
         try:
-            # 새 샘플 시작 시도
-            start_sample(samples_dic, cmd, labcode, max_samples, process_status, root_dir, force=force)
+            # 새 샘플 시작 시도 (사용 가능한 슬롯만큼 반복)
+            started_any = False
+            while True:
+                # Try to start one sample
+                if start_sample(samples_dic, cmd, labcode, max_samples, process_status, root_dir, force=force):
+                    started_any = True
+                    time.sleep(1)  # Small delay between starts
+                else:
+                    # No more slots available or no more samples to start
+                    break
+            
+            if started_any:
+                logger.info("Finished starting available samples")
             
             # 프로세스 상태 업데이트
             update_process_status(process_status, samples_dic, root_dir, force=force)

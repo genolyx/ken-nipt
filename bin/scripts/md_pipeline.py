@@ -160,8 +160,25 @@ def check_step_completion(sample_analysis_dir, sample_id, bam_path, types):
             except:
                 pass
         
-        # Check YFF - if gender.txt exists and fetal_fraction.txt has YFF value
-        if os.path.exists(ff_txt):
+        # Check YFF - check JSON file first (preferred method)
+        json_file = os.path.join(sample_analysis_dir, f"{sample_id}.json")
+        if os.path.exists(json_file):
+            try:
+                with open(json_file, 'r') as f:
+                    metadata = json.load(f)
+                
+                # Check calculated_ff section in JSON
+                calculated_ff = metadata.get("calculated_ff", {})
+                yff_status = calculated_ff.get("yff_status")
+                
+                # YFF exists if yff_status is "OK" (calculation completed)
+                if yff_status == "OK":
+                    completion['ff_yff'] = True
+            except:
+                pass
+        
+        # Fallback: also check fetal_fraction.txt file if JSON doesn't have YFF
+        if not completion['ff_yff'] and os.path.exists(ff_txt):
             try:
                 with open(ff_txt, 'r') as f:
                     content = f.read()
@@ -169,7 +186,6 @@ def check_step_completion(sample_analysis_dir, sample_id, bam_path, types):
                     if "YFF" in content or "yff" in content:
                         # Try to parse JSON if it's JSON format
                         try:
-                            import json
                             ff_data = json.loads(content)
                             if ff_data.get("yff", 0) > 0 or ff_data.get("YFF", 0) > 0:
                                 completion['ff_yff'] = True
@@ -1510,6 +1526,37 @@ def main():
             log_and_print(f"WCX fetus: {'✓ Completed' if completion['wcx_fetus'] else '✗ Missing'}")
         log_and_print(f"FF YFF: {'✓ Completed' if completion['ff_yff'] else '✗ Missing'}")
         log_and_print(f"FF seqFF: {'✓ Completed' if completion['ff_seqff'] else '✗ Missing'}")
+        
+        # Check if all required steps are completed
+        # For FF, check based on gender (Male needs both YFF and seqFF, Female needs only seqFF)
+        ff_required = True
+        if gender == 'M':
+            # Male: both YFF and seqFF required
+            ff_required = completion['ff_yff'] and completion['ff_seqff']
+        else:
+            # Female or Unknown: seqFF only required
+            ff_required = completion['ff_seqff']
+        
+        # Check if all required steps are completed
+        all_completed = (
+            completion['wc_orig'] and
+            (not (fetus_bam and os.path.exists(fetus_bam)) or completion['wc_fetus']) and
+            completion['wcx_orig'] and
+            (not (fetus_bam and os.path.exists(fetus_bam)) or completion['wcx_fetus']) and
+            ff_required
+        )
+        
+        if all_completed:
+            log_and_print("\n=== All required steps already completed ===")
+            log_and_print("All result files exist. Skipping execution.")
+            # Create marker file if it doesn't exist
+            marker_file = os.path.join(sample_analysis_dir, f"{sample_id}.md_pipeline_completed.marker")
+            if not os.path.exists(marker_file):
+                with open(marker_file, 'w') as f:
+                    f.write(f"MD Pipeline completed at {datetime.datetime.now()}\n")
+                log_and_print(f"Marker file created: {marker_file}")
+            log_and_print("="*80)
+            return 0
     else:
         completion = {
             'wc_orig': False,
