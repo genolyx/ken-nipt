@@ -1,0 +1,88 @@
+{
+    "config_info": {
+        "name": "Original Reference SCA Detection",
+        "type": "orig",
+        "description": "Original population reference data for SCA detection",
+        "version": "1.0",
+        "created_date": "2025-05-31",
+        "last_updated": "2025-05-31"
+    },
+    "sca_detection": {
+        "male": {
+            "slope": -0.08367685038621694,
+            "intercept": 0.4876543737788628,
+            "ur_x_threshold": 5.3,
+            "margin": 0.005,
+            "description": "Original male reference data for XYY/XXY detection",
+            "sample_count": 1000,
+            "detection_types": ["XYY", "XXY", "Normal"]
+        },
+        "female": {
+            "xo_z_threshold": -5.5,
+            "xxx_z_threshold": 4.5,
+            "ur_x_low": 5.25,
+            "ur_x_high": 5.49,
+            "z_normal_low": -3.0,
+            "z_normal_high": 1.0,
+            "xo_ur_x_min": 4.9,
+            "xo_ur_x_max": 5.2,
+            "xxx_ur_x_min": 5.52,
+            "xxx_ur_x_max": 6.0,
+            "description": "Original female reference data for XO/XXX detection",
+            "sample_count": 1200,
+            "detection_types": ["XO", "XXX", "Normal"]
+        }
+    },
+    "detection_rules": {
+        "male": {
+            "logic": "boundary_line_with_threshold",
+            "steps": [
+                "1. Calculate boundary_y = slope * ur_x + intercept",
+                "2. If ur_y > boundary_y + margin: Abnormal",
+                "3. If abnormal and ur_x >= ur_x_threshold: XYY Detected",
+                "4. If abnormal and ur_x < ur_x_threshold: XXY Detected",
+                "5. If ur_y > boundary_y (no margin): Suspected",
+                "6. Else: Normal"
+            ]
+        },
+        "female": {
+            "logic": "z_score_and_ur_x_ranges",
+            "steps": [
+                "1. If z_score < xo_threshold and ur_x in [xo_ur_x_min, xo_ur_x_max]: XO Detected",
+                "2. If z_score > xxx_threshold and ur_x in [xxx_ur_x_min, xxx_ur_x_max]: XXX Detected",
+                "3. If z_score in [z_normal_min, z_normal_max] and ur_x in [ur_x_min, ur_x_max]: Normal",
+                "4. Else: Not Detected"
+            ]
+        }
+    },
+    "plot_settings": {
+        "figure_size": [12, 8],
+        "dpi": 100,
+        "colors": {
+            "xy_normal": "blue",
+            "xxy": "orange",
+            "xyy": "green",
+            "xx_normal": "gray",
+            "xo": "coral",
+            "xxx": "gold",
+            "boundary_line": "purple",
+            "threshold_line": "red",
+            "test_sample": "red"
+        },
+        "male": {
+            "x_axis_range": [4.0, 6.0],
+            "y_axis_range": [0.0, 0.15],
+            "title": "SCA (Male) - Original Reference"
+        },
+        "female": {
+            "x_axis_range": [4.0, 7.0],
+            "y_axis_range": [-40, 40],
+            "title": "SCA (Female) - Original Reference"
+        }
+    },
+    "file_paths": {
+        "male_reference": "/path/to/orig/male.txt",
+        "female_reference": "/path/to/orig/female.txt",
+        "output_directory": "/path/to/output/orig/"
+    }
+}

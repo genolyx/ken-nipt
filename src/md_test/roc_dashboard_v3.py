@@ -604,15 +604,18 @@ def update_performance(n_clicks, disease, method, threshold, min_length_mb):
         
         # Fixed FF and Length values
         ff_values = [5.0, 10.0, 15.0]
-        length_values = [1, 3, 5, 7, 10]
+        all_length_values = [0.5, 1, 3, 5, 7, 10]
+        
+        # Filter length values based on min_length_mb
+        if min_length_mb is not None and min_length_mb > 0:
+            length_values = [l for l in all_length_values if l >= min_length_mb]
+        else:
+            length_values = all_length_values
         
         all_metrics_data = []
         
         for ff in ff_values:
             for length in length_values:
-                # Filter data by min length if specified
-                if min_length_mb is not None and length < min_length_mb:
-                    continue
                     
                 cm_result = calculate_confusion_matrix(
                     COLLECTED_DATA, disease, method, ff, length, threshold
@@ -688,6 +691,9 @@ def update_performance(n_clicks, disease, method, threshold, min_length_mb):
         # Helper function to create metric heatmap
         def create_metric_heatmap(df, metric, colorscale, disease, method):
             pivot = df.pivot(index='Length', columns='FF', values=metric)
+            # Get actual length values from the data
+            actual_length_values = sorted(pivot.index.tolist())
+            
             fig = go.Figure(data=go.Heatmap(
                 z=pivot.values, x=pivot.columns, y=pivot.index,
                 colorscale=colorscale, zmin=0, zmax=1,
@@ -699,7 +705,7 @@ def update_performance(n_clicks, disease, method, threshold, min_length_mb):
                 title=f'{metric}: {disease} - {method}',
                 xaxis_title='Fetal Fraction (%)', yaxis_title='Deletion Length (Mb)',
                 xaxis={'tickmode': 'array', 'tickvals': [5, 10, 15]},
-                yaxis={'tickmode': 'array', 'tickvals': [1, 3, 5, 7, 10]},
+                yaxis={'tickmode': 'array', 'tickvals': actual_length_values},
                 height=400, template='plotly_white'
             )
             return fig

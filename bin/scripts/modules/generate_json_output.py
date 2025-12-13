@@ -1183,6 +1183,7 @@ def build_md_details_section(analysis_dir, sample_name, target_bed_dir):
         "md108_results": ("TargetDB_md108.bed", "md108", "other_md108"),
         "md320_results": ("TargetDB_md320.bed", "md320", "other_md320"),
         "md87_results": ("TargetDB_md87.bed", "md87", "other_md87"),
+        "md141_results": ("TargetDB_md141.bed", "md141", "other_md141"),
     }
 
     data_sources = ["orig", "fetus", "mom"]
@@ -1501,6 +1502,12 @@ def build_nipt_json(
                 "item": "other_md87",
                 "location": "other",
                 "disease_name": "other_md87",
+                "result": "Low Risk",
+            },
+            {
+                "item": "other_md141",
+                "location": "other",
+                "disease_name": "other_md141",
                 "result": "Low Risk",
             },
         ]

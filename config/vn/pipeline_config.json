@@ -142,5 +142,24 @@
       "greater_than": 10000000,
       "min_length": 6000000
     }
+  },
+  "MD_Target_141": {
+    "bed": "TargetDB_md141.bed",
+    "region1": {
+      "less_than": 1000000,
+      "min_length": 200000
+    },
+    "region2": {
+      "less_than": 5000000,
+      "min_length": 1000000
+    },
+    "region3": {
+      "less_than": 10000000,
+      "min_length": 2000000
+    },
+    "region4": {
+      "greater_than": 10000000,
+      "min_length": 6000000
+    }
   }
 }

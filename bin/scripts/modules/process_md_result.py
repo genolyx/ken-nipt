@@ -228,7 +228,8 @@ def process_microdeletion_result(sample_name, tool_name, input_file, tag, target
         "MD_Target_8": "md8",
         "MD_Target_108": "md108",
         "MD_Target_320": "md320",
-        "MD_Target_87": "md87"
+        "MD_Target_87": "md87",
+        "MD_Target_141": "md141"
     }
 
     if md_select not in md_file_dict:
@@ -274,7 +275,7 @@ def run_microdeletion_decision_pipeline(sample_name, labcode, config, analysis_d
 
     methods = ["WC", "WCX"]
     types = ["orig", "fetus", "mom"]
-    md_targets = ["MD_Target_8", "MD_Target_87", "MD_Target_108", "MD_Target_320"]
+    md_targets = ["MD_Target_8", "MD_Target_87", "MD_Target_108", "MD_Target_320", "MD_Target_141"]
 
     wc_input_files = {
         "orig": f"{analysis_dir}/{sample_name}/Output_WC/orig/{sample_name}.wc.orig.report.txt",

@@ -1,0 +1,141 @@
+1	1	121000000	Partial monosomy 1p	loss	overlap	-	-	-	-
+1	834083	6289973	1p36 terminal region (includes GABRD) gain	gain	overlap	-	-	-	-
+1	142600001	155000000	Monosomy 1q21-q32	loss	overlap	-	-	-	-
+1	146577486	147394506	1q21.1 recurrent region (distal, BP3-BP4) (includes GJA5) gain	gain	overlap	-	-	-	-
+1	146577486	147394506	1q21.1 recurrent region (distal, BP3-BP4) (includes GJA5) loss	loss	overlap	-	-	-	-
+1	156500001	249250621	Trisomy 1q23-qter	gain	overlap	-	-	-	-
+1	224100001	249250621	Monosomy 1q42-qter	loss	overlap	-	-	-	-
+1	243287730	245318287	1q43q44 terminal region (includes AKT3)	loss	overlap	-	-	-	-
+2	1	90914128	Partial monosomy 2p	loss	overlap	-	-	-	-
+2	1	90914128	Partial trisomy 2p	gain	overlap	-	-	-	-
+2	15708677	16185337	2p24.3 MYCN-DDX1 duplication region	gain	overlap	-	-	-	-
+2	59139200	62488871	2p15p16.1 region (includes BCL11A)	loss	overlap	-	-	-	-
+2	96739012	97671429	2q11.2 recurrent region (includes ARID5A, TMEM127)	loss	overlap	-	-	-	-
+2	97116529	243199372	Partial monosomy 2q	loss	overlap	-	-	-	-
+2	97116529	243199372	Partial trisomy 2q	gain	overlap	-	-	-	-
+2	111392193	113104742	2q13 recurrent region (distal) (includes BCL2L11) gain	gain	overlap	-	-	-	-
+2	111392193	113104742	2q13 recurrent region (distal) (includes BCL2L11) loss	loss	overlap	-	-	-	-
+3	1	87863383	Partial trisomy 3p	gain	overlap	-	-	-	-
+3	1	198022429	Partial monosomy 3p	loss	overlap	-	-	-	-
+3	132902	16081016	Monosomy 3p25-pter	loss	overlap	-	-	-	-
+3	43700001	91000000	Monosomy 3p11-p21	loss	overlap	-	-	-	-
+3	93536245	198022429	Partial monosomy 3q	loss	overlap	-	-	-	-
+3	93536245	198022429	Partial trisomy 3q	gain	overlap	-	-	-	-
+3	136403035	148341113	3q24 Region (includes ZIC1)	loss	overlap	-	-	-	-
+3	195756054	197344662	3q29 recurrent region (includes DLG1)	loss	overlap	-	-	-	-
+4	1	48494172	Partial monosomy 4p	loss	overlap	-	-	-	-
+4	1	48494172	Partial trisomy 4p	gain	overlap	-	-	-	-
+4	1	191154275	Partial monosomy 4p	loss	overlap	-	-	-	-
+4	331568	2010962	4p16.3 terminal (Wolf-Hirschhorn syndrome) region gain	gain	overlap	-	-	-	-
+4	52086334	191154275	Partial trisomy 4q	gain	overlap	-	-	-	-
+4	76300001	155600000	Monosomy 4q21-q31	loss	overlap	-	-	-	-
+4	139500001	191154275	Monosomy 4q31-qter	loss	overlap	-	-	-	-
+5	1	47821161	Partial trisomy 5p	gain	overlap	-	-	-	-
+5	37693	11347262	5p15 terminal (Cri du chat syndrome) region gain	gain	overlap	-	-	-	-
+5	50017031	180793266	Partial monosomy 5q	loss	overlap	-	-	-	-
+5	50017031	180793266	Partial trisomy 5q	gain	overlap	-	-	-	-
+5	175728979	177047793	5q35 recurrent (Sotos syndrome) region (includes NSD1) gain	gain	overlap	-	-	-	-
+5	175728979	177047793	5q35 recurrent (Sotos syndrome) region (includes NSD1) loss	loss	overlap	-	-	-	-
+6	1	59736372	Partial trisomy 6p	gain	overlap	-	-	-	-
+6	1	59736372	Partial trisomy 6q	gain	overlap	-	-	-	-
+6	62586391	171001065	Partial monosomy 6q	loss	overlap	-	-	-	-
+6	144243292	144416561	6q24 region (includes PLAGL1)	gain	overlap	-	-	-	-
+7	1	59383286	Partial monosomy 7p	loss	overlap	-	-	-	-
+7	1	59383286	Partial trisomy 7p	gain	overlap	-	-	-	-
+7	5536848	5799722	7p22.1 region (includes ACTB)	loss	overlap	-	-	-	-
+7	72744455	74142510	7q11.23 recurrent (Williams-Beuren syndrome) region (includes ELN) gain	gain	overlap	-	-	-	-
+7	75158048	76063176	7q11.23 recurrent distal region (includes HIP1, YWHAG)	loss	overlap	-	-	-	-
+7	77412982	127116858	Trisomy 7q21-q31	gain	overlap	-	-	-	-
+7	127204126	159138662	monosomy 7q32-qter	loss	overlap	-	-	-	-
+7	127204126	159138662	Trisomy 7q32-qter	gain	overlap	-	-	-	-
+7	156583796	156584568	7q36.3 ZRS (SHH cis-regulatory) duplication region (within LMBR1 intron 5)	gain	overlap	-	-	-	-
+8	8100064	11766329	8p23.1 recurrent region (includes GATA4) gain	gain	overlap	-	-	-	-
+8	8100064	11766329	8p23.1 recurrent region (includes GATA4) loss	loss	overlap	-	-	-	-
+8	48034905	146364021	Partial trisomy 8q	gain	overlap	-	-	-	-
+9	1	47766154	Partial monosomy 9p	loss	overlap	-	-	-	-
+9	1	47766154	Partial trisomy 9p	gain	overlap	-	-	-	-
+9	50609378	141213430	Partial monosomy 9q	loss	overlap	-	-	-	-
+9	50609378	141213430	Partial trisomy 9q	gain	overlap	-	-	-	-
+10	1	38110579	Partial monosomy 10p	loss	overlap	-	-	-	-
+10	1	38110579	Partial trisomy 10p	gain	overlap	-	-	-	-
+10	42300000	135534747	Partial monosomy 10q	loss	overlap	-	-	-	-
+10	42300000	135534747	Partial trisomy 10q	gain	overlap	-	-	-	-
+10	81682843	88739388	10q22.3q23.2 recurrent region (includes BMPR1A)	loss	overlap	-	-	-	-
+11	1	51869973	Partial trisomy 11p	gain	overlap	-	-	-	-
+11	31803509	32510988	11p13 (WAGR syndrome) region	loss	overlap	-	-	-	-
+11	43894800	46152450	11p11.2 (Potocki-Shaffer syndrome) region (includes ALX4, EXT2)	loss	overlap	-	-	-	-
+11	55755704	135006515	Partial monosomy 11q	loss	overlap	-	-	-	-
+11	55755704	135006515	Partial trisomy 11q	gain	overlap	-	-	-	-
+11	67763646	71236931	11q13.2q13.4 recurrent region (includes SHANK2, FGFs)	loss	overlap	-	-	-	-
+12	1	33713547	Partial monosomy 12p	loss	overlap	-	-	-	-
+12	1	33713547	Partial trisomy 12p	gain	overlap	-	-	-	-
+12	38200000	133851895	Partial trisomy 12q	gain	overlap	-	-	-	-
+13	40100001	55300000	Monosomy 13q14	loss	overlap	-	-	-	-
+13	40100001	55300000	Trisomy 13cen-q14	gain	overlap	-	-	-	-
+13	55300001	115169878	Monosomy 13q21-qter	loss	overlap	-	-	-	-
+13	55300001	115169878	Trisomy 13q21-qter	gain	overlap	-	-	-	-
+14	1	107349540	Partial trisomy 14	gain	overlap	-	-	-	-
+14	21826900	21861987	14q11.2 region including CHD8 and SUPT16H	loss	overlap	-	-	-	-
+14	67900001	107349540	Trisomy 14q24-qter	gain	overlap	-	-	-	-
+14	101190852	101299552	DLK1-MEG3 Intergenic Region	loss	overlap	-	-	-	-
+15	1	102531392	Supernumerary inv dup (15)	gain	overlap	-	-	-	-
+15	23747996	28379874	15q11.2q13 recurrent (PWS/AS) region (Class I, BP1-BP3 and Class II, BP2-BP3) gain	gain	overlap	-	-	-	-
+15	31192889	32445405	15q13.3 recurrent region (BP4-BP5) (includes CHRNA7)	loss	overlap	-	-	-	-
+15	32019621	32445405	15q13.3 recurrent region (D-CHRNA7 to BP5) (includes CHRNA7, OTUD7A)	loss	overlap	-	-	-	-
+15	59100001	102531392	Trisomy 15q22-qter	gain	overlap	-	-	-	-
+15	72963715	75508312	15q24 recurrent region (LCR A-LCR C)	loss	overlap	-	-	-	-
+15	72963715	75972909	15q24 recurrent region (LCR A-LCR D) (includes SIN3A)	loss	overlap	-	-	-	-
+15	75631787	75972909	15q24 recurrent region (LCR C-LCR D) (includes SIN3A)	loss	overlap	-	-	-	-
+15	83199987	84714733	15q25.2 recurrent region (proximal, LCR-A/B-C) (includes RPS17)	loss	overlap	-	-	-	-
+16	1	34728394	Partial trisomy 16p	gain	overlap	-	-	-	-
+16	3775056	3930121	16p13.3 region (includes CREBBP)	loss	overlap	-	-	-	-
+16	15511711	16292265	16p13.11 recurrent region (BP1-BP3, BP2-BP3, or BP2-BP4) (includes MYH11) gain	gain	overlap	-	-	-	-
+16	15511711	16292265	16p13.11 recurrent region (BP1-BP3, BP2-BP3, or BP2-BP4) (includes MYH11) loss	loss	overlap	-	-	-	-
+16	21948445	22430804	16p12.2 recurrent region (proximal) (includes EEF2K, CDR2)	loss	overlap	-	-	-	-
+16	28822635	29046499	16p11.2 recurrent region (distal, BP2-BP3) (includes SH2B1)	loss	overlap	-	-	-	-
+16	29649997	30199852	16p11.2 recurrent region (proximal, BP4-BP5) (includes TBX6) gain gain	gain	overlap	-	-	-	-
+16	29649997	30199852	16p11.2 recurrent region (proximal, BP4-BP5) (includes TBX6) loss loss	loss	overlap	-	-	-	-
+16	38600001	90354753	Partial monosomy 16q	loss	overlap	-	-	-	-
+16	38600001	90354753	Partial trisomy 16q	gain	overlap	-	-	-	-
+17	1	50200000	Trisomy 17pter-q21	gain	overlap	-	-	-	-
+17	1247833	2588909	17p13.3 (Miller-Dieker syndrome) region (includes YWHAE and PAFAH1B1) gain	gain	overlap	-	-	-	-
+17	1247833	2588909	17p13.3 (Miller-Dieker syndrome) region (includes YWHAE and PAFAH1B1) loss	loss	overlap	-	-	-	-
+17	14097915	15422952	17p12 recurrent (HNPP/CMT1A) region (includes PMP22) gain	gain	overlap	-	-	-	-
+17	14097915	15422952	17p12 recurrent (HNPP/CMT1A) region (includes PMP22) loss	loss	overlap	-	-	-	-
+17	16810028	20213202	17p11.2 recurrent (SMS/PLS) region (includes RAI1) gain	gain	overlap	-	-	-	-
+17	16810028	20213202	17p11.2 recurrent (SMS/PLS) region (includes RAI1) loss	loss	overlap	-	-	-	-
+17	29097069	30264027	17q11.2 recurrent region (includes NF1) gain	gain	overlap	-	-	-	-
+17	29097069	30264027	17q11.2 recurrent region (includes NF1) loss	loss	overlap	-	-	-	-
+17	34815072	36192489	17q12 recurrent (RCAD syndrome) region (includes HNF1B) gain	gain	overlap	-	-	-	-
+17	34815072	36192489	17q12 recurrent (RCAD syndrome) region (includes HNF1B) loss	loss	overlap	-	-	-	-
+17	43705166	44164880	17q21.31 recurrent (KdVS) region (includes KANSL1)	loss	overlap	-	-	-	-
+17	58113002	60275809	17q23.1q23.2 recurrent region (includes TBX2, TBX4) gain	gain	overlap	-	-	-	-
+17	58113002	60275809	17q23.1q23.2 recurrent region (includes TBX2, TBX4) loss	loss	overlap	-	-	-	-
+17	67892996	69792434	SOX9 upstream enhancer region	loss	overlap	-	-	-	-
+18	1	15751966	Partial monosomy 18p	loss	overlap	-	-	-	-
+18	1	15751966	Partial tetrasomy 18p	gain	overlap	-	-	-	-
+18	1	43500000	Trisomy 18pter-q12	gain	overlap	-	-	-	-
+18	25000001	78077248	Trisomy 18q12-qter	gain	overlap	-	-	-	-
+18	43500001	78077248	Monosomy 18q21-qter	loss	overlap	-	-	-	-
+20	1	26108756	Partial monosomy 20p	loss	overlap	-	-	-	-
+20	1	26108756	Trisomy 20p	gain	overlap	-	-	-	-
+21	1	48129895	Partial monosomy 21	loss	overlap	-	-	-	-
+22	17392953	18591860	22q11.21 recurrent (CES) region (includes CECR2)	gain	overlap	-	-	-	-
+22	18912231	21465672	22q11.2 recurrent (DGS) region (proximal, A-B, A-C, or A-D) (includes TBX1) gain	gain	overlap	-	-	-	-
+22	20731986	21465672	22q11.2 recurrent region (central, B-D or C-D) (includes CRKL)	loss	overlap	-	-	-	-
+22	21917117	23649111	22q11.2 recurrent region (distal type I, D-E or D-F)	loss	overlap	-	-	-	-
+22	21917117	24994433	22q11.2 recurrent region (distal type III, D-G, D-H) (includes SMARCB1)	loss	overlap	-	-	-	-
+22	23119415	24994433	22q11.2 recurrent region (distal type III, E-H or F-H) (includes SMARCB1)	loss	overlap	-	-	-	-
+22	23831202	24632821	22q11.2 recurrent region (distal type III, F-G) (includes SMARCB1)	loss	overlap	-	-	-	-
+X	6455812	8124954	Xp22.31 recurrent region (includes STS)	loss	overlap	-	-	-	-
+X	30195000	30355000	Xp21.2 region (includes NR0B1)	gain	overlap	-	-	-	-
+X	43514154	43741720	Xp11.23 region (includes MAOA and MAOB)	loss	overlap	-	-	-	-
+X	48306152	52103258	Xp11.22p11.23 recurrent region (includes SHROOM4)	gain	overlap	-	-	-	-
+X	53363456	53793054	Xp11.22 region (includes HUWE1)	gain	overlap	-	-	-	-
+X	123034319	123236519	Xq25 region (includes STAG2) gain	gain	overlap	-	-	-	-
+X	123034319	123236519	Xq25 region (includes STAG2) loss	loss	overlap	-	-	-	-
+X	153273980	153375749	Xq28 region (includes MECP2) gain	gain	overlap	-	-	-	-
+X	153273980	153375749	Xq28 region (includes MECP2) loss	loss	overlap	-	-	-	-
+X	153624564	153783898	Xq28 recurrent region (includes GDI1)	gain	overlap	-	-	-	-
+X	154118603	154564401	Xq28 recurrent region (int22h1/int22h2-flanked) (includes RAB39B) gain	gain	overlap	-	-	-	-
+X	154118603	154564401	Xq28 recurrent region (int22h1/int22h2-flanked) (includes RAB39B) loss	loss	overlap	-	-	-	-

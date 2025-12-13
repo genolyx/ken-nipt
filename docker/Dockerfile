@@ -6,7 +6,7 @@ FROM ubuntu:22.04
 # Locale / timezone / apt setup
 # ----------------------------
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Asia/Taipei
+ENV TZ=Asia/Seoul
 
 RUN apt-get update && \
     apt-get install -y tzdata && \

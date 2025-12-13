@@ -768,7 +768,8 @@ def generate_microdeletion_section(data, sample_id=None):
         ('md8_results', '8 Common Syndromes'),
         ('md108_results', '108 Extended Syndromes'),
         ('md320_results', '320 Extended Syndromes'),
-        ('md87_results', '87 Extended Syndromes')
+        ('md87_results', '87 Extended Syndromes'),
+        ('md141_results', '141 Extended Syndromes')
     ]
     
     for md_section, section_title in md_sections:

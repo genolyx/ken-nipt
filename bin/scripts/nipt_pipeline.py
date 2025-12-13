@@ -3554,7 +3554,7 @@ def main():
 
     # Add MD targets if defined
     paths["md_beds"] = {}
-    for md_key in ["MD_Target_8", "MD_Target_87", "MD_Target_320", "MD_Target_116"]:
+    for md_key in ["MD_Target_8", "MD_Target_87", "MD_Target_108", "MD_Target_320", "MD_Target_141"]:
         if md_key in config:
             paths["md_beds"][md_key] = bed_dir / config[md_key]["bed"]
 
