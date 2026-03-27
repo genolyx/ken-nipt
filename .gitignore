@@ -1,4 +1,6 @@
-/analysis/
+# Analysis outputs (large); exception: lowff_test docs (see analysis/lowff_test/.gitignore)
+/analysis/*
+!/analysis/lowff_test/
 /bkup/
 /data/refs/common/hg19
 /fastq/
@@ -17,17 +19,39 @@
 
 *.swp
 *.fasta
+*.html
+*.pyc
+**/__pycache__/
 bin/.*
 
 /data/refs/cordlife/gen_ref/
 /data/refs/ucl/gen_ref/
 /data/refs/vn/gen_ref/
+/data/refs/ucl_2510plus/
+/data/bed/ucl_2510plus/
+/data/refs/ucl_new/
+/data/bed/ucl_new/
+/data/refs/cordlife/reference_make/
+/data/refs/ucl/reference_make/
 *.npz
 *.log
 *.tar
 *.tar.gz
+*.png
 
 **/*.bam
 **/*.bai
 
 src/md_test/**/*.tsv
+
+# Root-level analysis / reference writeups (local notes; use git add -f to version)
+/BATCH_ANALYSIS_SUMMARY.md
+/CHROMOSOME_BIAS_EXPLAINED.md
+/CRITICAL_WCX_BUG_FIX.md
+/FINAL_REPORT_GUIDE.md
+/REFERENCE_CREATION_SUMMARY.md
+/REFERENCE_DOCKER_INTEGRATION.md
+/REFERENCE_NOISE_ANALYSIS.md
+/SEQUENCER_COMPARISON_ANALYSIS.md
+/UCL_REPORT_README.md
+/WC_WCX_BUG_FIX_SUMMARY.md

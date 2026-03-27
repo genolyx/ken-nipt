@@ -1,0 +1,4 @@
+# Only version LOWFF_WORKFLOW_GUIDE.md; scripts live in src/util/lowff_script
+*
+!/.gitignore
+!/LOWFF_WORKFLOW_GUIDE.md
