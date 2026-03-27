@@ -205,7 +205,7 @@ CONTAINER_ID=$("$DOCKER_BIN" run --rm -d \
     -e DATA_DIR="/Work/NIPT/data" \
     -e ANALYSIS_DIR="/Work/NIPT/analysis" \
     -e OUTPUT_DIR="/Work/NIPT/output" \
-    nipt_docker_v1.2 \
+    nipt_docker_v1.3 \
     "${DOCKER_ARGS[@]}"
     #--sample_name "$SAMPLE_NAME" \
     #--fastq_r1 "$FASTQ_R1" \

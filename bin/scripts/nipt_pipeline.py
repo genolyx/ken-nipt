@@ -256,6 +256,18 @@ def parse_args():
         help="Skip preprocessing and run only algorithms",
     )
     parser.add_argument(
+        "--from_proper_paired",
+        action="store_true",
+        help="Start from existing proper_paired.bam (skip FASTQ preprocessing and BAM generation)",
+    )
+    parser.add_argument(
+        "--proper_paired_bam",
+        default=None,
+        help="Optional path to an existing proper_paired.bam to use with --from_proper_paired. "
+        "If provided, the pipeline will link/copy it into analysis/<sample>/<sample>.proper_paired.bam "
+        "after directory creation (recommended for Low-FF artificial BAMs).",
+    )
+    parser.add_argument(
         "--force_run", action="store_true", help="Force rerun even if completed"
     )
 
@@ -2412,7 +2424,6 @@ def calculate_fetal_fraction(sample_name, config, paths):
     ff_results["SeqFF"] = {"value": seqff_result["seqff_value"]}
 
     # 250610 : Add the modified seqFF
-    #ff_results["M-SeqFF"] = {"value": seqff_result["seqff_value"] + 4.0}
     ff_results["M-SeqFF"] = {"value": round(seqff_result["seqff_value"] + 4.0, 2)}
 
     df_ff = pd.DataFrame.from_dict(ff_results, orient="index")
@@ -3467,6 +3478,8 @@ def main():
     labcode = args.labcode
     age = args.age
     algorithm_only = args.algorithm_only
+    from_proper_paired = args.from_proper_paired
+    proper_paired_bam_arg = getattr(args, "proper_paired_bam", None)
     force_run = args.force_run
 
     # Base directory structure
@@ -3511,6 +3524,14 @@ def main():
     if algorithm_only:
         log_and_print("--algorithm_only option enabled: Skipping preprocessing", "INFO")
         progress.update_step(1, "Algorithm only mode : SKIP 1~7", "SKIP")
+        force_run = True
+
+    if from_proper_paired:
+        log_and_print(
+            "--from_proper_paired option enabled: Starting from existing proper_paired.bam (skip FASTQ + BAM generation)",
+            "INFO",
+        )
+        # In this mode, we still run filters + HMMcopy, then all downstream algorithms.
         force_run = True
 
     # I think following lines are not necessary
@@ -3578,53 +3599,142 @@ def main():
         log_and_print(f"Could not initialize file logging: {e}", "WARNING")
 
     if not algorithm_only:
-        log_and_print("=== Downsample Fastq check ===")
-        if not run_pipeline_step(
-            1,
-            "Downsample",
-            downsample_fastq,
-            progress,
-            sample_name,
-            fastq_r1,
-            fastq_r2,
-            config,
-        ):
-            progress.mark_failed("Downsample failed")
-            return 1
+        if not from_proper_paired:
+            log_and_print("=== Downsample Fastq check ===")
+            if not run_pipeline_step(
+                1,
+                "Downsample",
+                downsample_fastq,
+                progress,
+                sample_name,
+                fastq_r1,
+                fastq_r2,
+                config,
+            ):
+                progress.mark_failed("Downsample failed")
+                return 1
 
-        log_and_print("=== Running FastQC ===")
-        if not run_pipeline_step(
-            2, "FastQC", run_fastqc, progress, sample_name, fastq_r1, fastq_r2
-        ):
-            progress.mark_failed("FastQC failed")
-            return 1
+            log_and_print("=== Running FastQC ===")
+            if not run_pipeline_step(
+                2, "FastQC", run_fastqc, progress, sample_name, fastq_r1, fastq_r2
+            ):
+                progress.mark_failed("FastQC failed")
+                return 1
 
-        log_and_print("=== Creating the default directories ===")
-        if not run_pipeline_step(
-            3, "Creating directories", create_directories, progress, sample_name
-        ):
-            progress.mark_failed("Creating directories failed")
-            return 1
+            log_and_print("=== Creating the default directories ===")
+            if not run_pipeline_step(
+                3, "Creating directories", create_directories, progress, sample_name
+            ):
+                progress.mark_failed("Creating directories failed")
+                return 1
 
-        if not run_pipeline_step(
-            4,
-            "Creating symbolic links of Fastq",
-            create_symbolic_links,
-            progress,
-            sample_name,
-            fastq_r1,
-            fastq_r2,
-        ):
-            progress.mark_failed("Creating directories failed")
-            return 1
+            if not run_pipeline_step(
+                4,
+                "Creating symbolic links of Fastq",
+                create_symbolic_links,
+                progress,
+                sample_name,
+                fastq_r1,
+                fastq_r2,
+            ):
+                progress.mark_failed("Creating directories failed")
+                return 1
 
-        log_and_print("=== Starting BAM file generation ===")
-        if not generate_proper_paired_bam(
-            sample_name, fastq_r1, fastq_r2, config, progress, base_step=5
-        ):
-            progress.mark_failed("BAM generation failed")
-            return 1
+            log_and_print("=== Starting BAM file generation ===")
+            if not generate_proper_paired_bam(
+                sample_name, fastq_r1, fastq_r2, config, progress, base_step=5
+            ):
+                progress.mark_failed("BAM generation failed")
+                return 1
+        else:
+            # Start from existing proper_paired.bam (no FASTQ required)
+            progress.update_step(1, "Downsample", "SKIP", "from proper_paired.bam")
+            progress.update_step(2, "FastQC", "SKIP", "from proper_paired.bam")
 
+            log_and_print("=== Creating the default directories ===")
+            if not run_pipeline_step(
+                3, "Creating directories", create_directories, progress, sample_name
+            ):
+                progress.mark_failed("Creating directories failed")
+                return 1
+
+            progress.update_step(4, "Creating symbolic links of Fastq", "SKIP", "from proper_paired.bam")
+            progress.update_step(5, "BAM generation", "SKIP", "from proper_paired.bam")
+
+            # NOTE: create_directories may remove/recreate analysis/<sample>/, so in this mode we
+            # (re)materialize analysis/<sample>/<sample>.proper_paired.bam after Step 3.
+            proper_paired_expected = Path(ANALYSIS_DIR) / sample_name / f"{sample_name}.proper_paired.bam"
+            proper_paired_src = Path(proper_paired_bam_arg) if proper_paired_bam_arg else proper_paired_expected
+
+            if not proper_paired_src.exists():
+                log_and_print(
+                    f"proper_paired.bam not found: {proper_paired_src} (expected: {proper_paired_expected})",
+                    "ERROR",
+                )
+                progress.mark_failed("proper_paired.bam missing")
+                return 1
+
+            if proper_paired_bam_arg:
+                # Ensure the pipeline sees the BAM in the standard expected location.
+                try:
+                    if proper_paired_expected.exists() or proper_paired_expected.is_symlink():
+                        proper_paired_expected.unlink()
+                except Exception:
+                    pass
+
+                try:
+                    os.symlink(str(proper_paired_src), str(proper_paired_expected))
+                    log_and_print(
+                        f"Linked proper_paired.bam: {proper_paired_expected} -> {proper_paired_src}",
+                        "INFO",
+                    )
+                except Exception as e:
+                    log_and_print(
+                        f"Symlink failed ({e}); copying proper_paired.bam into analysis dir (may take time)...",
+                        "WARNING",
+                    )
+                    shutil.copy2(str(proper_paired_src), str(proper_paired_expected))
+
+            proper_paired_bam = str(proper_paired_expected)
+
+            # Ensure BAM index exists
+            bai = f"{proper_paired_bam}.bai"
+            if not os.path.exists(bai):
+                sam_tools = os.environ.get("SAMTools", "samtools")
+                log_and_print("Indexing existing proper_paired.bam ...")
+                if not run_command("Proper paired BAM index", f"{sam_tools} index {proper_paired_bam}"):
+                    progress.mark_failed("proper_paired.bam indexing failed")
+                    return 1
+
+            # In from_proper_paired mode, generate QC outputs required for report gating.
+            # Otherwise reviewer section becomes "No call" due to missing qc.filter.txt.
+            try:
+                qualimap = os.environ.get("qualimap", "qualimap")
+                qc_dir = f"{ANALYSIS_DIR}/{sample_name}/Output_QC"
+                qualimap_html = f"{qc_dir}/qualimapReport.html"
+                qc_filter_result = f"{qc_dir}/{sample_name}.qc.filter.txt"
+
+                # 1) Run qualimap to create genome_results.txt (input for qc_filter)
+                if not os.path.exists(qualimap_html):
+                    log_and_print("=== Running Qualimap (from proper_paired.bam) ===")
+                    if not run_command(
+                        "Qualimap",
+                        f"{qualimap} bamqc -bam {proper_paired_bam} -nt 10 -outdir {qc_dir}",
+                    ):
+                        log_and_print("Qualimap failed in from_proper_paired mode.", "ERROR")
+
+                # 2) Create qc.txt + qc.filter.txt (PASS/FAIL per metric)
+                if not os.path.exists(qc_filter_result):
+                    log_and_print("=== Running QC filter (from proper_paired.bam) ===")
+                    qc_success, pass_fail_success = process_qc_pipeline(sample_name, config)
+                    log_and_print(
+                        f"process_qc_pipeline completed: qc_success={qc_success}, pass_fail_success={pass_fail_success}"
+                    )
+            except Exception as e:
+                # Do not abort the whole pipeline due to QC generation failures; downstream analyses can still run.
+                log_and_print(f"QC generation failed in from_proper_paired mode: {e}", "WARNING")
+
+        # Filters + HMMcopy are still required for downstream algorithms
         log_and_print("=== Starting filter processing ===")
         base_step = 6
         step_counter = 0

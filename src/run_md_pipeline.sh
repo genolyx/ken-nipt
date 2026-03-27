@@ -259,7 +259,7 @@ CONTAINER_ID=$("$DOCKER_BIN" run -d \
     -e WC="/opt/wisecondor/wisecondor.py" \
     -e WCX="wisecondorx" \
     --entrypoint python3 \
-    nipt_docker_v1.2 \
+    nipt_docker_v1.3 \
     /Work/NIPT/bin/scripts/md_pipeline.py \
     "${DOCKER_ARGS[@]}"
 )

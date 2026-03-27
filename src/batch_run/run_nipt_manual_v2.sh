@@ -221,7 +221,7 @@ CONTAINER_ID=$(docker run -d \
     -e DATA_DIR="/Work/NIPT/data" \
     -e ANALYSIS_DIR="/Work/NIPT/analysis" \
     -e OUTPUT_DIR="/Work/NIPT/output" \
-    nipt_docker_v1.2 \
+    nipt_docker_v1.3 \
     "${DOCKER_ARGS[@]}"
 )
 
