@@ -1553,9 +1553,13 @@ def create_npz_files(sample_name, bam_file, bam_suffix, config):
     wc_output = (
         f"{ANALYSIS_DIR}/{sample_name}/Output_WC/{sample_name}.wc.{bam_suffix}.npz"
     )
-    wcx_output = (
-        f"{ANALYSIS_DIR}/{sample_name}/Output_WCX/{sample_name}.wcx.{bam_suffix}.npz"
+    # WisecondorX automatically appends .npz to the output path.
+    # Pass the base name (without .npz) to the convert command,
+    # and check for the final file with .npz extension.
+    wcx_output_base = (
+        f"{ANALYSIS_DIR}/{sample_name}/Output_WCX/{sample_name}.wcx.{bam_suffix}"
     )
+    wcx_output = f"{wcx_output_base}.npz"
     #wcff_output = (
     #    f"{ANALYSIS_DIR}/{sample_name}/Output_WCFF/{sample_name}.wcff.{bam_suffix}.npz"
     #)
@@ -1573,13 +1577,13 @@ def create_npz_files(sample_name, bam_file, bam_suffix, config):
         log_and_print(f"WC convert {bam_suffix} failed. Pipeline terminated.", "ERROR")
         return False
 
-    # WCX convert
+    # WCX convert: pass base path (without .npz); WisecondorX appends .npz automatically
     if not check_file_exists_advanced(
         wcx_output, f"WCX NPZ file for {bam_suffix}", "npz"
     ):
         if not run_command(
             f"WCX convert {bam_suffix}",
-            f"{wcx_path} convert {bam_file} {wcx_output} --binsize {wcx_binsize}",
+            f"{wcx_path} convert {bam_file} {wcx_output_base} --binsize {wcx_binsize}",
         ):
             log_and_print(
                 f"WCX convert {bam_suffix} failed. Pipeline terminated.", "ERROR"
@@ -1596,6 +1600,8 @@ def create_npz_files(sample_name, bam_file, bam_suffix, config):
             log_and_print(f"WCFF convert {bam_suffix} failed. Pipeline terminated.", 'ERROR')
             return False
     '''
+
+    return True
 
 def create_hmmcopy_files(sample_name, bam_file, bam_suffix):
     """Create 50kb and 10mb wig files and run HMMcopy for a given BAM file"""
@@ -2299,8 +2305,14 @@ def process_hmmcopy(sample_name, config):
     for bam_file, bam_suffix in bam_files:
         log_and_print(f"Processing {bam_suffix} BAM file")
 
+        if not os.path.exists(bam_file):
+            log_and_print(f"BAM file not found: {bam_file} - skipping {bam_suffix}", "WARNING")
+            continue
+
         # Create NPZ files for all BAM files
-        create_npz_files(sample_name, bam_file, bam_suffix, config)
+        npz_result = create_npz_files(sample_name, bam_file, bam_suffix, config)
+        if npz_result is False:
+            log_and_print(f"create_npz_files failed for {bam_suffix} - NPZ files may be missing at prediction step", "WARNING")
 
         # For all except proper_paired.bam, also create HMMcopy files
         # if bam_suffix != "proper_paired":

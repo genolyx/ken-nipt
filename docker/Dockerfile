@@ -147,10 +147,22 @@ RUN /opt/conda/envs/nipt/bin/pip install \
     plotly \
     pandas==2.2.2 \
     matplotlib==3.8.4 \
-    pysam==0.22.0
+    pysam==0.22.0 \
+    typer
 
 RUN /opt/conda/envs/nipt/bin/pip install -U git+https://github.com/CenterForMedicalGeneticsGhent/WisecondorX && \
-    /opt/conda/envs/nipt/bin/wisecondorx --help || echo "WisecondorX installed"
+    /opt/conda/envs/nipt/bin/wisecondorx --help && \
+    WCX_INCLUDE=$(/opt/conda/envs/nipt/bin/python -c "import wisecondorx; import os; print(os.path.join(os.path.dirname(wisecondorx.__file__), 'include'))") && \
+    if [ ! -f "${WCX_INCLUDE}/CBS.R" ]; then \
+        echo "CBS.R not found at ${WCX_INCLUDE}, cloning to copy include files..." && \
+        git clone --depth 1 https://github.com/CenterForMedicalGeneticsGhent/WisecondorX /tmp/wisecondorx-src && \
+        mkdir -p "${WCX_INCLUDE}" && \
+        cp -r /tmp/wisecondorx-src/src/wisecondorx/include/. "${WCX_INCLUDE}/" && \
+        rm -rf /tmp/wisecondorx-src && \
+        echo "CBS.R installed at ${WCX_INCLUDE}/CBS.R"; \
+    else \
+        echo "CBS.R already present at ${WCX_INCLUDE}/CBS.R"; \
+    fi
 
 # Symlinks for convenience
 RUN if [ ! -f /usr/local/bin/wisecondorx ]; then ln -s /opt/conda/envs/nipt/bin/wisecondorx /usr/local/bin/wisecondorx; fi && \
